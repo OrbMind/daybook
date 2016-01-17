@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>icon/icon.png</file>
+    </qresource>
+    <qresource prefix="/images">
+        <file>icon/add.png</file>
+        <file>icon/edit.png</file>
+        <file>icon/remove.png</file>
+        <file>icon/find.png</file>
+        <file>icon/restore.png</file>
+        <file>icon/more.png</file>
+        <file>icon/less.png</file>
+        <file>icon/file.png</file>
+        <file>icon/all2left.png</file>
+        <file>icon/all2right.png</file>
+        <file>icon/one2left.png</file>
+        <file>icon/one2right.png</file>
+        <file>icon/initiated.png</file>
+        <file>icon/notinitiated.png</file>
+    </qresource>
+</RCC>
