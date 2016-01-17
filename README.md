@@ -13,3 +13,5 @@ https://github.com/OrbMind/daybook
 https://www.iconfinder.com/iconsets/feather
 Данный набор иконок распространяется по лицензии creative commons attribution 3.0:
 https://creativecommons.org/licenses/by/3.0/deed.ru
+
+Программа использует драйвер QIBASE и набор стандартных библиотек QT.
