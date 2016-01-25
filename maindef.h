@@ -5,7 +5,8 @@
 
 namespace ApplicationConfiguration
 {
-
+    const char * const defaultHost = "10.0.2.200";
+    const char * const defaultDbName = "test";
     const char * const dbVersion = "1";
     const char * const userDBA = "SYSDBA";
     const char * const passwordDBA = "masterkey";
@@ -14,6 +15,7 @@ namespace ApplicationConfiguration
     const char * const fullNameApplication = "Журнал Административных Распоряжений";
     const char * const briefNameApplication = "Журнал АР";
     const int idnGuest = -1;
+    //const char * const appVersion = APP_VERSION;
 
 }
 
@@ -33,7 +35,9 @@ namespace Act
     //const int del = 3;
     //const int restore = 4;
     const int initiate = 5;
+    const int showAdminInfo = 6;
     bool userPermission(int actionId,int userPermission);
 }
+
 #endif // MAINDEF_H
 

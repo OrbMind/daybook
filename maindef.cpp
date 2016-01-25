@@ -1,11 +1,4 @@
 #include "maindef.h"
-/*
-const double // определение статической константы
-
-CostEstimate::FudgeFactor = 1.35; // класса – помещается в файл реализации
-
-char * const ConfigDbConst::dbVersion = "1";
-*/
 
 bool Act::userPermission(int actionId,int userPermission)
 {
@@ -32,6 +25,10 @@ bool Act::userPermission(int actionId,int userPermission)
         case Act::initiate:
             result = ( userPermission == UserRights::admin || userPermission == UserRights::writer ||
                        userPermission == UserRights::user);
+        break;
+        case Act::showAdminInfo:
+            result = ( userPermission == UserRights::admin );
+        break;
     }
 
     return result;

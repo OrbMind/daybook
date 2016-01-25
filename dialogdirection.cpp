@@ -13,9 +13,26 @@ DialogDirection::DialogDirection(QWidget *parent) :
     directionIdn = -1;
     idnRequested = -1;
     idnRecorded = -1;
+    currentUserIdn = -1;
 
     contextTableMenu = new QMenu(this);
     createContextTableMenu();
+
+}
+
+void DialogDirection::recieveCurrentUserIdn(int userIdn)
+{
+    this->currentUserIdn = userIdn;
+    if ( directionIdn == -1 ) return;
+    for ( int i = 0; i < currentDirection.directionUserRecords.count(); i++)
+    {
+        if ( currentDirection.directionUserRecords.at(i).idnUser == currentUserIdn )
+        {
+            enableControlInitiate(Act::userPermission(Act::initiate,currentUserRights) &&
+                                   currentDirection.directionUserRecords.at(i).initiated == 0);
+             break;
+        }
+    }
 }
 
 DialogDirection::~DialogDirection()
@@ -56,33 +73,46 @@ void DialogDirection::recieveDirectionIdn(int directionIdn)
         if ( !query.exec() )
             QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         query.next();
-        idnRequested = query.value("idn_request").toInt();
-        idnRecorded = query.value("idn_recorded").toInt();
+
+        currentDirection.idnRecorded = query.value("idn_recorded").toInt();
+        currentDirection.idnRequested = query.value("idn_request").toInt();
+
+        idnRecorded = currentDirection.idnRecorded;
+        idnRequested = currentDirection.idnRequested;
+
 
         fillUsersList();
 
-        ui->lineEditNum->setText(query.value("num").toString());
-        ui->lineEditSubject->setText(query.value("subject").toString());
-        ui->plainTextEditText->setPlainText(query.value("text").toString());
-        ui->dateEditDdate->setDate(query.value("ddate").toDate());
-        ui->lineEditFilePath->setText(query.value("file").toString());
+        currentDirection.num = query.value("num").toInt();
+        currentDirection.subject = query.value("subject").toString();
+        currentDirection.text = query.value("text").toString();
+        currentDirection.ddate = query.value("ddate").toDate();
+        currentDirection.file = query.value("file").toString();
+
+        ui->lineEditNum->setText(QString::number(currentDirection.num));
+        ui->lineEditSubject->setText(currentDirection.subject);
+        ui->plainTextEditText->setPlainText(currentDirection.text);
+        ui->dateEditDdate->setDate(currentDirection.ddate);
+        ui->lineEditFilePath->setText(currentDirection.file);
 
         ui->comboBoxRecorded->setCurrentIndex(
-            ui->comboBoxRecorded->findData(QVariant(query.value("idn_recorded").toInt()),Qt::UserRole));
+            ui->comboBoxRecorded->findData(QVariant(currentDirection.idnRecorded),Qt::UserRole));
         ui->comboBoxRequest->setCurrentIndex(
-            ui->comboBoxRequest->findData(QVariant(query.value("idn_request").toInt()),Qt::UserRole));
+            ui->comboBoxRequest->findData(QVariant(currentDirection.idnRequested),Qt::UserRole));
 
         query.clear();
         db->close();
 
         fillInitiatedUsers();
         this->setWindowTitle(QString(ApplicationConfiguration::briefNameApplication) + ": Редактирование/просмотр распоряжения");
+
     }
 }
 
 void DialogDirection::fillInitiatedUsers()
 {
     QListWidgetItem *q;
+    FullDirectionRecord::DirectionUserRecord dur;
     if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
     query.prepare("select a.idn_direction,a.idn_user,a.initiated,"
@@ -98,6 +128,10 @@ void DialogDirection::fillInitiatedUsers()
         q->setData(Qt::UserRole,QVariant(query.value("idn_user").toInt()));
         q->setData(Qt::UserRole+1,QVariant(query.value("initiated").toInt()));
         ui->listWidgetToInitiated->addItem(q);
+
+        dur.idnUser = query.value("idn_user").toInt();
+        dur.initiated = query.value("initiated").toInt();
+        currentDirection.directionUserRecords << dur;
     }
     db->close();
 
@@ -218,7 +252,7 @@ void DialogDirection::on_pushButtonRemoveSelectedUsers_clicked()
 
 void DialogDirection::on_pushButtonChooseFilePath_clicked()
 {
-    ui->lineEditFilePath->setText(QFileDialog::getOpenFileName(this, tr("Выбрать файл:"),".",tr("Файл *.* (*.*)")));
+    ui->lineEditFilePath->setText(QDir::toNativeSeparators(QFileDialog::getOpenFileName(this, tr("Выбрать файл:"),".",tr("Файл *.* (*.*)"))));
 }
 
 void DialogDirection::on_lineEditFilePath_textChanged(const QString &arg1)
@@ -231,7 +265,9 @@ void DialogDirection::saveInitiatedUsers()
     if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
 
     QSqlQuery query(*db);
-    query.prepare("DELETE from direction_users where idn_direction=:idn_direction;");
+    //FullDirectionRecord::DirectionUserRecord dur;
+    db->transaction();
+    /*query.prepare("DELETE from direction_users where idn_direction=:idn_direction;");
     query.bindValue(":idn_direction",directionIdn);
     if ( !query.exec() )
         QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
@@ -247,7 +283,99 @@ void DialogDirection::saveInitiatedUsers()
         query.bindValue(":idn_user",QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole)).toInt());
         if ( !query.exec() )
             QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+    }*/
+    // delete if need
+    bool found;
+
+    for ( int id = 0; id < currentDirection.directionUserRecords.count(); id++ )
+    {
+        found = false;
+        for ( int kl = 0; kl < ui->listWidgetToInitiated->count(); kl++)
+        {
+            if ( currentDirection.directionUserRecords.at(id).idnUser ==
+                 QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole)).toInt())
+            {
+                found = true;
+                break;
+            }
+        }
+        //if ( kl == ui->listWidgetToInitiated->count() )
+        if ( !found )
+        {
+            query.clear();
+            query.prepare("DELETE from direction_users where idn_direction=:idn_direction and idn_user=:idn_user;");
+            query.bindValue(":idn_direction",directionIdn);
+            query.bindValue(":idn_user",currentDirection.directionUserRecords.at(id).idnUser);
+            if ( !query.exec() ){
+                QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                db->rollback();
+                db->close();
+                return;
+            }
+        }
     }
+
+    //insert and update
+    for( int kl = 0; kl < ui->listWidgetToInitiated->count(); kl++ )
+    {
+        found = false;
+        for ( int id = 0; id < currentDirection.directionUserRecords.count(); id++)
+        {
+            if ( QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole)).toInt() ==
+                 currentDirection.directionUserRecords.at(id).idnUser )
+            {
+                found = true;
+                if ( QVariant( ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt() !=
+                     currentDirection.directionUserRecords.at(id).initiated )
+                {
+                    //update
+                    query.clear();
+                    query.prepare("UPDATE direction_users set initiated=:initiated where idn_direction=:idn_direction and idn_user=:idn_user;");
+                    query.bindValue(":idn_direction",directionIdn);
+                    query.bindValue(":idn_user",currentDirection.directionUserRecords.at(id).idnUser);
+                    query.bindValue(":initiated",QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt());
+                    if ( !query.exec() )
+                    {
+                        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                        db->rollback();
+                        db->close();
+                        return;
+                    }
+                }
+                break;
+            } // if found idnUser
+        } //for ( int id = 0; id < currentDirection.directionUserRecords.count
+        //if ( id == currentDirection.directionUserRecords.count() )
+        if ( !found )
+        {
+            //insert
+            query.clear();
+            query.prepare("INSERT INTO direction_users (idn_direction,idn_user,initiated) VALUES (:idn_direction,:idn_user,:initiated);");
+            query.bindValue(":idn_direction",directionIdn);
+            query.bindValue(":initiated",QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt());
+            query.bindValue(":idn_user",QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole)).toInt());
+            if ( !query.exec() ){
+                QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                db->rollback();
+                db->close();
+                return;
+            }
+        }
+    } // for( int kl = 0; kl < ui->listWidgetToInitiated->count()
+
+
+    db->commit();
+
+    /*for( int i = 0; i < ui->listWidgetToInitiated->count(); i++ )
+    {
+        dur.idnUser = QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole)).toInt();
+        dur.initiated = QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole+1)).toInt();
+        currentDirection.directionUserRecords
+
+        //query.clear();
+        //if ( !query.exec() )
+        //    QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+    }*/
 
     db->close();
 
@@ -255,10 +383,19 @@ void DialogDirection::saveInitiatedUsers()
 
 void DialogDirection::on_buttonBox_accepted()
 {
-    if ( !Act::userPermission(Act::edit,currentUserRights) ) return;
+    if (!Act::userPermission(Act::edit,currentUserRights) &&
+    !Act::userPermission(Act::initiate,currentUserRights) )
+        return;
+    //if ( !Act::userPermission(Act::edit,currentUserRights) ) return;
     if ( ! CheckInput() ) return;
 
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
+    if (this->directionIdn == -1 )
+        insertNewDirection();
+    else
+        updateDirection();
+
+    saveInitiatedUsers();
+/*    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
 
     QSqlQuery query(*db);
 
@@ -282,16 +419,137 @@ void DialogDirection::on_buttonBox_accepted()
     query.bindValue(":idn",directionIdn);
     query.bindValue(":num",ui->lineEditNum->text().trimmed().toInt());
     query.bindValue(":ddate",ui->dateEditDdate->date());
-    query.bindValue(":subject",ui->lineEditSubject->text().trimmed().remove(64,ui->lineEditSubject->text().length()));
-    query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(256,ui->plainTextEditText->toPlainText().length()));
+    query.bindValue(":subject",ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()));
+    query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()));
     query.bindValue(":idn_request",ui->comboBoxRequest->currentData(Qt::UserRole).toInt());
     query.bindValue(":idn_recorded",ui->comboBoxRecorded->currentData(Qt::UserRole).toInt());
     query.bindValue(":file",ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()));
     if ( !query.exec() )
         QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     db->close();
-    saveInitiatedUsers();
+    saveInitiatedUsers();*/
+    savePositionAndSize();
     this->accept();
+
+}
+
+void DialogDirection::insertNewDirection()
+{
+    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
+
+    QSqlQuery query(*db);
+    query.prepare("select GEN_ID(gen_directions, 1) as idn from RDB$DATABASE;");
+            if ( !query.exec() )
+            {
+                QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                return;
+            }
+    query.next();
+    directionIdn=query.value("idn").toInt();
+    query.clear();
+
+    query.prepare("insert into directions (idn,num,ddate,subject,text,idn_request,idn_recorded,file) VALUES (:idn,:num,:ddate,:subject,:text,:idn_request,:idn_recorded,:file);");
+    query.bindValue(":idn",directionIdn);
+    query.bindValue(":num",ui->lineEditNum->text().trimmed().toInt());
+    query.bindValue(":ddate",ui->dateEditDdate->date());
+    query.bindValue(":subject",ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()));
+    query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()));
+    query.bindValue(":idn_request",ui->comboBoxRequest->currentData(Qt::UserRole).toInt());
+    query.bindValue(":idn_recorded",ui->comboBoxRecorded->currentData(Qt::UserRole).toInt());
+    query.bindValue(":file",ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()));
+    if ( !query.exec() )
+        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+    db->close();
+}
+
+void DialogDirection::updateDirection()
+{
+
+    QString sq = "UPDATE directions SET ";
+    bool addedField = false;
+
+    if ( currentDirection.num != ui->lineEditNum->text().trimmed().toInt() )
+    {
+        sq = sq + "num=:num";
+        addedField = true;
+    }
+
+    if ( currentDirection.ddate != ui->dateEditDdate->date() )
+    {
+        if (addedField) sq = sq + ",";
+        sq = sq + "ddate=:ddate";
+        addedField = true;
+    }
+
+    if ( currentDirection.subject != ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()))
+    {
+        if (addedField) sq = sq + ",";
+        sq = sq + "subject=:subject";
+        addedField = true;
+    }
+
+    if ( currentDirection.text != ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()))
+    {
+        if (addedField) sq = sq + ",";
+        sq = sq + "text=:text";
+        addedField = true;
+    }
+
+    if ( currentDirection.idnRecorded != ui->comboBoxRecorded->currentData(Qt::UserRole).toInt())
+    {
+        if (addedField) sq = sq + ",";
+        sq = sq + "idn_recorded=:idn_recorded";
+        addedField = true;
+    }
+
+    if ( currentDirection.idnRequested != ui->comboBoxRequest->currentData(Qt::UserRole).toInt())
+    {
+        if (addedField) sq = sq + ",";
+        sq = sq + "idn_request=:idn_request";
+        addedField = true;
+    }
+
+    if ( currentDirection.file != ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()))
+    {
+        if (addedField) sq = sq + ",";
+        sq = sq + "file=:file";
+        addedField = true;
+    }
+
+    sq = sq + " WHERE idn=:idn;";
+
+    if (addedField)
+    {
+        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
+
+        QSqlQuery query(*db);
+        query.prepare(sq);
+        query.bindValue(":idn",directionIdn);
+
+        if ( currentDirection.num != ui->lineEditNum->text().trimmed().toInt() )
+            query.bindValue(":num",ui->lineEditNum->text().trimmed().toInt());
+
+        if ( currentDirection.ddate != ui->dateEditDdate->date() )
+            query.bindValue(":ddate",ui->dateEditDdate->date());
+
+        if ( currentDirection.subject != ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()))
+            query.bindValue(":subject",ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()));
+
+        if ( currentDirection.text != ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()))
+            query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()));
+
+        if ( currentDirection.idnRequested != ui->comboBoxRequest->currentData(Qt::UserRole).toInt())
+            query.bindValue(":idn_request",ui->comboBoxRequest->currentData(Qt::UserRole).toInt());
+
+        if ( currentDirection.idnRecorded != ui->comboBoxRecorded->currentData(Qt::UserRole).toInt())
+            query.bindValue(":idn_recorded",ui->comboBoxRecorded->currentData(Qt::UserRole).toInt());
+
+        if ( currentDirection.file != ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()))
+            query.bindValue(":file",ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()));
+        if ( !query.exec() )
+            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        db->close();
+    }
 
 }
 
@@ -347,9 +605,9 @@ void DialogDirection::on_listWidgetDirectionUsers_customContextMenuRequested(con
     q->setSelected(true); // fix bug with quick click
 
     contextTableMenu->actions().at(0)->setEnabled( ( QVariant(q->data(Qt::UserRole+1)).toInt() == 0 )
-                                                   and Act::userPermission(Act::initiate,currentUserRights));
+                                                   and Act::userPermission(Act::edit,currentUserRights));
     contextTableMenu->actions().at(2)->setEnabled( ( QVariant(q->data(Qt::UserRole+1)).toInt() == 1 )
-                                                   and Act::userPermission(Act::initiate,currentUserRights));
+                                                   and Act::userPermission(Act::edit,currentUserRights));
 
     QAction* selectedItem = contextTableMenu->exec(QCursor::pos());
     if ( !selectedItem ) return;
@@ -383,7 +641,7 @@ void DialogDirection::colourListWidget()
 
 void DialogDirection::on_pushButtonFile_clicked()
 {
-    QDesktopServices::openUrl(QUrl(ui->lineEditFilePath->text()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(ui->lineEditFilePath->text()));
 }
 
 void DialogDirection::recieveUserPermissions(int userPermissions)
@@ -413,5 +671,69 @@ void DialogDirection::enableControls(bool enable)
 
 void DialogDirection::enableControlInitiate(bool enable)
 {
-    //ui->pushButtonSetInitiated->setEnabled(Act::userPermission(Act::initiate,currentUserRights));
+    ui->pushButtonSetInitiated->setEnabled(enable);
+}
+
+void DialogDirection::on_pushButtonSetInitiated_clicked()
+{
+    for ( int i = 0; i <  ui->listWidgetDirectionUsers->count(); i++ )
+    {
+        if ( QVariant(ui->listWidgetDirectionUsers->item(i)->data(Qt::UserRole)).toInt() ==
+             currentUserIdn )
+        {
+            ui->listWidgetDirectionUsers->item(i)->setData(Qt::UserRole+1,QVariant(1));
+            break;
+        }
+    }
+
+    for ( int i = 0; i < ui->listWidgetToInitiated->count(); ++ i)
+        if ( currentUserIdn ==
+             QVariant( ui->listWidgetToInitiated->item(i)->data(Qt::UserRole)).toInt() )
+        {
+            ui->listWidgetToInitiated->item(i)->setData(Qt::UserRole+1,QVariant(1));
+            //ui->listWidgetToInitiated->item(i)->setSelected(true);
+            break;
+        }
+    colourListWidget();
+    enableControlInitiate(false);
+}
+
+
+void DialogDirection::recieveSettingsApp(QSettings **settings)
+{
+    this->settingsApp = *settings;
+    readPositionAndSize();
+}
+
+void DialogDirection::savePositionAndSize()
+{
+    bool savePosition;
+
+    settingsApp->beginGroup("main");
+    savePosition = settingsApp->value("saveposition",false).toBool();
+    settingsApp->endGroup();
+
+    if ( savePosition )
+    {
+        settingsApp->beginGroup("directionwindow");
+        settingsApp->setValue("size", size());
+        settingsApp->setValue("pos", pos());
+        settingsApp->endGroup();
+    }
+}
+
+void DialogDirection::readPositionAndSize()
+{
+    bool savePosition;
+    settingsApp->beginGroup("main");
+    savePosition = settingsApp->value("saveposition",false).toBool();
+    settingsApp->endGroup();
+
+    if(savePosition)
+    {
+        settingsApp->beginGroup("directionwindow");
+        resize(settingsApp->value("size",QSize(this->width(),this->height())).toSize());
+        move(settingsApp->value("pos",QPoint(700,500)).toPoint());
+        settingsApp->endGroup();
+    }
 }

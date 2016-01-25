@@ -9,7 +9,23 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     mainWindowSettings = NULL;
     contextTableMenu = NULL;
+    settingsApp = NULL;
     currentUserRights = UserRights::readonly;
+
+    //QString pathForStoreSettings = QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) + QDir::separator();
+
+    //QDir dir = QDir::root();
+    //dir.mkpath( pathForStoreSettings );
+    //QDir::mkpath(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)));
+    this->settingsApp = new QSettings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) +
+            QDir::separator() +
+            QCoreApplication::applicationName() + ".ini",
+            QSettings::IniFormat);
+    //QMessageBox::critical(this,"info",this->settingsApp->fileName());
+
+    //this->settingsApp = new QSettings( pathForStoreSettings +
+    //                             QCoreApplication::applicationName() + ".ini",
+    //                             QSettings::IniFormat);
 
     this->setWindowTitle(QString(ApplicationConfiguration::fullNameApplication));
 
@@ -26,6 +42,14 @@ MainWindow::MainWindow(QWidget *parent) :
     contextTableMenu = new QMenu(this);
     createContextTableMenu();
 
+    ui->comboBoxDate->addItem("Указанные даты");
+    ui->comboBoxDate->addItem("За эту неделю");
+    ui->comboBoxDate->addItem("За этот месяц");
+    ui->comboBoxDate->addItem("За этот год");
+    on_comboBoxDate_currentIndexChanged(2);
+    on_comboBoxDate_currentIndexChanged(0);
+
+    readMainWindowSettings();
 }
 
 bool MainWindow::enterSoft()
@@ -34,6 +58,8 @@ bool MainWindow::enterSoft()
     dialogEnterSoftWindow->setModal(true);
     connect(this, SIGNAL(sendDbSettings(QSqlDatabase*)), dialogEnterSoftWindow, SLOT(recieveDbSettings(QSqlDatabase*)));
     emit sendDbSettings(&this->db);
+    connect(this, SIGNAL(sendSettingsApp(QSettings**)),dialogEnterSoftWindow, SLOT(recieveSettingsApp(QSettings**)));
+    emit sendSettingsApp(&settingsApp);
     bool Result = dialogEnterSoftWindow->exec() == QDialog::Accepted;
     //dialogEnterSoftWindow->~DialogEnterSoft();
     //dialogEnterSoftWindow = NULL;
@@ -63,10 +89,8 @@ bool MainWindow::configDB()
     db = QSqlDatabase::addDatabase("QIBASE");
 
     mainWindowSettings->beginGroup("main");
-    //db.setHostName(mainWindowSettings->value("hostname","localhost").toString());
-    db.setHostName(mainWindowSettings->value("hostname","10.0.2.200").toString());
-    //db.setDatabaseName(mainWindowSettings->value("databasename","daybook").toString());
-    db.setDatabaseName(mainWindowSettings->value("databasename","test").toString());
+    db.setHostName(mainWindowSettings->value("hostname",ApplicationConfiguration::defaultHost).toString());
+    db.setDatabaseName(mainWindowSettings->value("databasename",ApplicationConfiguration::defaultDbName).toString());
     mainWindowSettings->endGroup();
 
     /*int size = mainWindowSettings->beginReadArray("connectoptions");
@@ -98,6 +122,11 @@ MainWindow::~MainWindow()
         contextTableMenu->~QMenu();
         contextTableMenu = NULL;
     }
+    if ( settingsApp != NULL )
+    {
+        settingsApp->~QSettings();
+        settingsApp = NULL;
+    }
     delete ui;
 }
 
@@ -107,12 +136,20 @@ void MainWindow::createMenuActions()
     connect(ui->actionJob,SIGNAL(triggered()),this,SLOT(showJobSpr()));
     connect(ui->actionUsers,SIGNAL(triggered()),this,SLOT(showUsersSpr()));
     connect(ui->actionAbout,SIGNAL(triggered()),this,SLOT(showDialogAbout()));
+    connect(ui->actionMainSettings,SIGNAL(triggered()),this,SLOT(showSettingsApp()));
 }
 
 void MainWindow::showDialogAbout()
 {
     DialogAbout* dialogAboutWindow = new DialogAbout;
     dialogAboutWindow->setModal(true);
+
+    connect(this,SIGNAL(sendUserPermissions(int)),dialogAboutWindow, SLOT(recieveUserPermissions(int)));
+    emit sendUserPermissions(this->currentUserRights);
+
+    connect(this,SIGNAL(sendSettingsApp(QSettings**)),dialogAboutWindow, SLOT(recieveSettingsApp(QSettings**)));
+    emit sendSettingsApp(&settingsApp);
+
     dialogAboutWindow->exec();
 
     dialogAboutWindow->~DialogAbout();
@@ -185,14 +222,58 @@ void MainWindow::refreshTable()
     QSqlQuery query(db);
 
     //query.prepare("select idn,num,ddate,subject,deleted from directions;");
-    query.prepare("select idn,num,"
-    " CAST(lpad(EXTRACT(DAY FROM ddate),2,'0') AS varchar(2))||'.'|| CAST(lpad(EXTRACT(MONTH FROM ddate),2,'0') AS varchar(2))||'.'|| EXTRACT(YEAR FROM ddate) AS fdate"
-    " ,subject,deleted from directions where ( (coalesce(:deleted,-1) = -1) or (deleted=:deleted)  );");
+    QString sq="";
+    sq = "select directions.idn,directions.num,"
+    " CAST(lpad(EXTRACT(DAY FROM directions.ddate),2,'0') AS varchar(2))||'.'|| CAST(lpad(EXTRACT(MONTH FROM directions.ddate),2,'0') AS varchar(2))||'.'|| EXTRACT(YEAR FROM directions.ddate) AS fdate"
+    " ,directions.subject,directions.deleted from directions";
+    if ( ui->checkBoxForInitiated->checkState() == Qt::Checked )
+        sq = sq + ",direction_users";
+    sq = sq + " where ( (coalesce(:deleted,-1) = -1) or (directions.deleted=:deleted)  )";
+    " and directions.ddate between :dfrom and :dto";
+    //" and ( (coalesce(:idn_user,-1) = -1) or (direction_users.idn_direction=directions.idn and direction_users.idn_user=:idn_user and direction_users.initiated=0) )";
 
-    if ( ui->checkBoxShowDeleted->checkState() == Qt::Checked)
+    if ( ui->lineEditFind->text().trimmed().count() > 0 )
+    {
+        sq = sq + " and directions.subject like '%'||:subject||'%'";
+    }
+
+    bool isok = false;
+    ui->lineEditNumDoc->text().trimmed().toInt(&isok);
+    if ( ui->lineEditNumDoc->text().trimmed().count() > 0 &&
+         isok)
+    {
+        sq = sq + " and directions.num like '%'||:num||'%'";
+    }
+
+    if ( ui->checkBoxForInitiated->checkState() == Qt::Checked )
+        sq = sq + " and direction_users.idn_direction=directions.idn and direction_users.idn_user=:idn_user and direction_users.initiated=0";
+
+    sq = sq + ";";
+    query.prepare(sq);
+
+    if ( ui->lineEditFind->text().trimmed().count() > 0 )
+    {
+        query.bindValue(":subject",ui->lineEditFind->text().trimmed().remove(1024,ui->lineEditFind->text().length()));
+    }
+
+    if ( ui->lineEditNumDoc->text().trimmed().count() > 0 &&
+         isok)
+    {
+        query.bindValue(":num",ui->lineEditNumDoc->text().trimmed().toInt());
+    }
+
+    query.bindValue(":dfrom",ui->dateEditFrom->date());
+    query.bindValue(":dto",ui->dateEditTo->date());
+
+
+    if ( ui->checkBoxShowDeleted->checkState() == Qt::Checked )
         query.boundValue(":deleted").clear();
     else
         query.bindValue(":deleted",QVariant(0));
+
+    if ( ui->checkBoxForInitiated->checkState() == Qt::Checked )
+        query.bindValue(":idn_user",currentUserIdn);
+
 
     if ( !query.exec() )
         QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
@@ -262,6 +343,10 @@ void MainWindow::addNewDirection()
     emit sendDirectionIdn(-1);
     connect(this,SIGNAL(sendUserPermissions(int)),dialogDirectionWindow, SLOT(recieveUserPermissions(int)));
     emit sendUserPermissions(this->currentUserRights);
+    connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogDirectionWindow,SLOT(recieveCurrentUserIdn(int)));
+    emit sendCurrentUserIdn(currentUserIdn);
+    connect(this,SIGNAL(sendSettingsApp(QSettings**)),dialogDirectionWindow,SLOT(recieveSettingsApp(QSettings**)));
+    emit sendSettingsApp(&settingsApp);
     dialogDirectionWindow->exec();
     dialogDirectionWindow->~DialogDirection();
     dialogDirectionWindow = NULL;
@@ -280,6 +365,10 @@ void MainWindow::editDirection()
         emit sendDirectionIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt());
         connect(this,SIGNAL(sendUserPermissions(int)),dialogDirectionWindow, SLOT(recieveUserPermissions(int)));
         emit sendUserPermissions(this->currentUserRights);
+        connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogDirectionWindow,SLOT(recieveCurrentUserIdn(int)));
+        emit sendCurrentUserIdn(currentUserIdn);
+        connect(this,SIGNAL(sendSettingsApp(QSettings**)),dialogDirectionWindow,SLOT(recieveSettingsApp(QSettings**)));
+        emit sendSettingsApp(&settingsApp);
         dialogDirectionWindow->exec();
         dialogDirectionWindow->~DialogDirection();
         dialogDirectionWindow = NULL;
@@ -382,7 +471,7 @@ void MainWindow::recieveAuthorizedUserIdn(int userIdn)
     {
         if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
         QSqlQuery query(db);
-        query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted,users.permissions from users,spr_job"
+        query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted,users.permissions,users.tab_number from users,spr_job"
                       " where spr_job.idn = users.idn_job and users.idn=:idn;");
         query.bindValue(":idn",currentUserIdn);
         if ( !query.exec() )
@@ -401,6 +490,7 @@ void MainWindow::recieveAuthorizedUserIdn(int userIdn)
             statusBar()->addPermanentWidget(new QLabel("Пользователь: " + query.value("initials").toString() +
                                                    " " + query.value("job").toString()
                                             ,this));
+            currentUserLogin = query.value("tab_number").toString();
         }
         db.close();
     }
@@ -419,3 +509,162 @@ void MainWindow::enableControls(bool enable)
 }
 
 
+
+void MainWindow::on_comboBoxDate_currentIndexChanged(int index)
+{
+    ui->dateEditFrom->setEnabled(index == 0);
+    ui->dateEditTo->setEnabled(index == 0);
+
+    if ( index == 0 ) return;
+
+    QDate Now;
+
+    if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT Cast('NOW' as Date) as ddate FROM RDB$DATABASE;");
+    if ( !query.exec() )
+        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+    query.next();
+
+    Now = query.value("ddate").toDate();
+    db.close();
+
+    if ( index == 1 )
+    {
+        ui->dateEditFrom->setDate(QDate(Now.year(),Now.month(),Now.day()-Now.dayOfWeek()+1));
+        ui->dateEditTo->setDate(Now);
+    }
+    else if ( index == 2 )
+    {
+        ui->dateEditFrom->setDate(QDate(Now.year(),Now.month(),1));
+        ui->dateEditTo->setDate(Now);
+    }
+    else if ( index == 3 )
+    {
+        ui->dateEditFrom->setDate(QDate(Now.year(),1,1));
+        ui->dateEditTo->setDate(Now);
+    }
+    else
+    {
+        ui->dateEditFrom->setDate(Now);
+        ui->dateEditTo->setDate(Now);
+    }
+
+}
+
+void MainWindow::showSettingsApp()
+{
+    DialogOptions *dialogOptionsWindow = new DialogOptions;
+    dialogOptionsWindow->setModal(true);
+
+    connect(this,SIGNAL(sendSettingsApp(QSettings**)),dialogOptionsWindow,SLOT(recieveSettingsApp(QSettings**)));
+    emit sendSettingsApp(&settingsApp);
+
+    dialogOptionsWindow->exec();
+
+    dialogOptionsWindow->~DialogOptions();
+    dialogOptionsWindow = NULL;
+}
+
+void MainWindow::saveSettings()
+{
+    bool saveLastUser;
+    bool saveFilter;
+    bool savePosition;
+
+
+    settingsApp->beginGroup("main");
+    saveLastUser = settingsApp->value("savelastuser",true).toBool();
+    saveFilter = settingsApp->value("savefilter",false).toBool();
+    savePosition = settingsApp->value("saveposition",false).toBool();
+    settingsApp->endGroup();
+
+    if ( saveLastUser )
+    {
+        settingsApp->beginGroup("main");
+        settingsApp->setValue("lastuser",currentUserLogin);
+        settingsApp->endGroup();
+    }
+
+    if ( saveFilter )
+    {
+        settingsApp->beginGroup("filter");
+        settingsApp->setValue("subject",ui->lineEditFind->text());
+        settingsApp->setValue("numdoc",ui->lineEditNumDoc->text());
+        settingsApp->setValue("datefrom",ui->dateEditFrom->date());
+        settingsApp->setValue("dateto",ui->dateEditTo->date());
+        settingsApp->setValue("dateswitch",ui->comboBoxDate->currentIndex());
+        settingsApp->setValue("onlyforme",ui->checkBoxForInitiated->checkState() == Qt::Checked);
+        settingsApp->setValue("showdeleted",ui->checkBoxShowDeleted->checkState() == Qt::Checked);
+        settingsApp->setValue("showfilter",ui->widgetExtendedOptions->isVisible());
+        settingsApp->endGroup();
+    }
+
+    if ( savePosition )
+    {
+        settingsApp->beginGroup("mainwindow");
+        settingsApp->setValue("size", size());
+        settingsApp->setValue("pos", pos());
+        settingsApp->endGroup();
+    }
+
+}
+
+void MainWindow::readMainWindowPositionAndSize()
+{
+    bool savePosition;
+    settingsApp->beginGroup("main");
+    savePosition = settingsApp->value("saveposition",false).toBool();
+    settingsApp->endGroup();
+
+    if(savePosition)
+    {
+        settingsApp->beginGroup("mainwindow");
+        resize(settingsApp->value("size",QSize(this->width(),this->height())).toSize());
+        move(settingsApp->value("pos",QPoint(800,600)).toPoint());
+        settingsApp->endGroup();
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *)
+{
+    saveSettings();
+}
+
+void MainWindow::readMainWindowSettings()
+{
+    readMainWindowPositionAndSize();
+    readMainWindowFilterSettings();
+}
+
+void MainWindow::readMainWindowFilterSettings()
+{
+    bool saveFilter;
+    settingsApp->beginGroup("main");
+    saveFilter = settingsApp->value("savefilter",false).toBool();
+    settingsApp->endGroup();
+
+    if ( saveFilter )
+    {
+
+        settingsApp->beginGroup("filter");
+        ui->lineEditFind->setText(settingsApp->value("subject","").toString());
+        ui->lineEditNumDoc->setText(settingsApp->value("numdoc","").toString());
+        ui->comboBoxDate->setCurrentIndex(settingsApp->value("dateswitch",0).toInt());
+        if ( ui->comboBoxDate->currentIndex() == 0 )
+        {
+            ui->dateEditFrom->setDate(settingsApp->value("datefrom",QDate()).toDate());
+            ui->dateEditTo->setDate(settingsApp->value("dateto",QDate()).toDate());
+        }
+        //ui->checkBoxForInitiated->setCheckable();
+
+        ui->checkBoxForInitiated->setChecked(settingsApp->value("onlyforme",false).toBool());
+        ui->checkBoxShowDeleted->setChecked(settingsApp->value("showdeleted",false).toBool());
+
+        if ( settingsApp->value("showfilter",false).toBool())
+            ui->pushButtonMoreOptions->click();
+
+        settingsApp->endGroup();
+    }
+}

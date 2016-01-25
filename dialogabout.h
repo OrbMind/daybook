@@ -2,6 +2,8 @@
 #define DIALOGABOUT_H
 
 #include <QDialog>
+#include <QSettings>
+#include <maindef.h>
 
 namespace Ui {
 class DialogAbout;
@@ -17,9 +19,17 @@ public:
 
 private slots:
     void on_pushButtonClose_clicked();
+    void setText();
 
 private:
     Ui::DialogAbout *ui;
+    int currentUserRights;
+    QString text;
+    QSettings *settingsApp;
+
+public slots:
+    void recieveUserPermissions(int userPermissions);
+    void recieveSettingsApp(QSettings **settings);
 };
 
 #endif // DIALOGABOUT_H

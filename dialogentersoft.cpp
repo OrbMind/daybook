@@ -117,3 +117,22 @@ void DialogEnterSoft::on_commandLinkButtonGuest_clicked()
     emit sendAuthorizedUserIdn(ApplicationConfiguration::idnGuest);
     this->accept();
 }
+
+void DialogEnterSoft::recieveSettingsApp(QSettings **settings)
+{
+    this->settingsApp = *settings;
+    bool saveLastUser;
+    settingsApp->beginGroup("main");
+    saveLastUser = settingsApp->value("savelastuser",true).toBool();
+    settingsApp->endGroup();
+
+    if ( saveLastUser )
+    {
+        settingsApp->beginGroup("main");
+        ui->lineEditName->setText(settingsApp->value("lastuser","").toString());
+        settingsApp->endGroup();
+    }
+
+    if ( ui->lineEditName->text().length() > 0 )
+        ui->lineEditPassword->setFocus();
+}

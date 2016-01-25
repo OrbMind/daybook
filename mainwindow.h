@@ -7,9 +7,11 @@
 #include <dialogusers.h>
 #include <dialogdirection.h>
 #include <QMessageBox>
+#include <QSettings>
 #include <maindef.h>
 #include <dialogabout.h>
 #include <dialogentersoft.h>
+#include <dialogoptions.h>
 
 namespace Ui {
 class MainWindow;
@@ -34,10 +36,13 @@ private:
     QMenu *contextTableMenu;
     int currentUserIdn;
     int currentUserRights;
+    QString currentUserLogin;
+    QSettings *settingsApp;
 
 private slots:
     void showJobSpr();
     void showUsersSpr();
+    void showSettingsApp();
     void createMenuActions();
     void quitFromApp();
     void on_pushButtonMoreOptions_clicked();
@@ -57,11 +62,19 @@ private slots:
     void showDialogAbout();
     void on_tableWidget_doubleClicked(const QModelIndex &index);
     void enableControls(bool enable);
+    void on_comboBoxDate_currentIndexChanged(int index);
+    void saveSettings();
+    void readMainWindowPositionAndSize();
+    void readMainWindowSettings();
+    void readMainWindowFilterSettings();
+    void closeEvent(QCloseEvent *);
 
 signals:
     void sendDbSettings(QSqlDatabase *db);
     void sendUserPermissions(int userPermissions);
     void sendDirectionIdn(int directionIdn);
+    void sendCurrentUserIdn(int userIdn);
+    void sendSettingsApp(QSettings **settings);
 };
 
 #endif // MAINWINDOW_H

@@ -69,7 +69,7 @@
        <item>
         <widget class="QPushButton" name="pushButtonAdd">
          <property name="toolTip">
-          <string>Добавить новую должность (Insert)</string>
+          <string>Добавить нового пользователя (Insert)</string>
          </property>
          <property name="text">
           <string/>
@@ -92,7 +92,7 @@
        <item>
         <widget class="QPushButton" name="pushButtonEdit">
          <property name="toolTip">
-          <string>Редактировать выделенную должность (Ctrl+E)</string>
+          <string>Редактировать выделенного пользователя (Ctrl+E)</string>
          </property>
          <property name="text">
           <string/>
@@ -115,7 +115,7 @@
        <item>
         <widget class="QPushButton" name="pushButtonDelete">
          <property name="toolTip">
-          <string>Удалить выделенную должность (Del)</string>
+          <string>Удалить выделенного пользователя (Del)</string>
          </property>
          <property name="text">
           <string/>

@@ -30,9 +30,11 @@ private:
     Ui::DialogEnterSoft *ui;
     QSqlDatabase *db;
     int attemptNum;
+    QSettings *settingsApp;
 
 public slots:
     void recieveDbSettings(QSqlDatabase *db);
+    void recieveSettingsApp(QSettings **settings);
 
 signals:
     void sendAuthorizedUserIdn(int userIdn);

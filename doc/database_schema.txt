@@ -1,4 +1,5 @@
-CREATE DATABSE '/usr/local/fdb/test.fdb' page_size 8192
+
+CREATE DATABASE '/usr/local/fbdb/test.fdb' page_size 8192
 user 'SYSDBA' password 'masterkey'
 DEFAULT CHARACTER SET UTF8;
 
@@ -19,14 +20,13 @@ name VARCHAR(128),
 surname VARCHAR(128),
 patronymic VARCHAR(128),
 permissions INTEGER DEFAULT 0,
-tab_number VARCHAR(128),
-password VARCHAR(256),
+tab_number VARCHAR(128) NOT NULL UNIQUE,
+upassword VARCHAR(256),
 deleted SMALLINT DEFAULT 0
 );
 
 CREATE GENERATOR gen_users_idn;
 SET GENERATOR gen_users_idn TO 1;
-
 
 CREATE TABLE directions
 (idn INTEGER PRIMARY KEY,
@@ -52,3 +52,11 @@ SET GENERATOR gen_directions TO 1;
 CREATE GENERATOR gen_direction_users;
 SET GENERATOR gen_direction_users TO 1;
 
+CREATE TABLE appconfig
+(option VARCHAR(32) PRIMARY KEY,
+svalue VARCHAR(32));
+
+
+insert into spr_job (idn,job,deleted) VALUES (0,' ',1);
+insert into users (idn,idn_job,name,surname,patronymic,permissions,tab_number,upassword) VALUES (GEN_ID(gen_users_idn, 1),0,'P','admin','S',2,'admin','admin');
+insert into appconfig (option,svalue) VALUES ('dbver','1');

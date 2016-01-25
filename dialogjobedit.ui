@@ -7,14 +7,20 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>130</height>
+    <height>118</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Добавить новую должность</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="images.qrc">
     <normaloff>:/icon/icon/icon.png</normaloff>:/icon/icon/icon.png</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout">
@@ -56,7 +62,9 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="images.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBoxOkCancel</sender>

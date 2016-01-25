@@ -13,6 +13,23 @@ namespace Ui {
 class DialogDirection;
 }
 
+namespace FullDirectionRecord {
+    struct DirectionUserRecord{
+        int idnUser;
+        int initiated;
+    };
+    struct DirectionRecord{
+        int num;
+        QDate ddate;
+        QString subject;
+        QString text;
+        QString file;
+        int idnRequested;
+        int idnRecorded;
+        QList<DirectionUserRecord> directionUserRecords;
+    };
+}
+
 class DialogDirection : public QDialog
 {
     Q_OBJECT
@@ -43,6 +60,11 @@ private slots:
     void on_pushButtonFile_clicked();
     void enableControls(bool enable);
     void enableControlInitiate(bool enable);
+    void insertNewDirection();
+    void updateDirection();
+    void on_pushButtonSetInitiated_clicked();
+    void savePositionAndSize();
+    void readPositionAndSize();
 
 private:
     Ui::DialogDirection *ui;
@@ -51,12 +73,17 @@ private:
     int idnRequested;
     int idnRecorded;
     QMenu *contextTableMenu;
+    int currentUserIdn;
     int currentUserRights;
+    FullDirectionRecord::DirectionRecord currentDirection;
+    QSettings *settingsApp;
 
 public slots:
     void recieveDbSettings(QSqlDatabase *db);
     void recieveDirectionIdn(int directionIdn);
     void recieveUserPermissions(int userPermissions);
+    void recieveCurrentUserIdn(int userIdn);
+    void recieveSettingsApp(QSettings **settings);
 
 };
 
