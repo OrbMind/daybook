@@ -40,17 +40,20 @@ private slots:
 public slots:
     void recieveDbSettings(QSqlDatabase *db);
     void recieveUserPermissions(int userPermissions);
+    void recieveCurrentUserIdn(int userIdn);
 
 signals:
     void sendDbSettings(QSqlDatabase *db);
     void sendUserIdn(int userIdn);
     void sendUserPermissions(int userPermissions);
+    void sendCurrentUserIdn(int userIdn);
 
 private:
     Ui::DialogUsers *ui;
     QSqlDatabase *db;
     QMenu *contextTableMenu;
     int currentUserRights;
+    int currentUserIdn;
 };
 
 #endif // DIALOGUSERS_H

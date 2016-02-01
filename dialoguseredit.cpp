@@ -9,6 +9,7 @@ DialogUserEdit::DialogUserEdit(QWidget *parent) :
     this->setWindowTitle(QString(ApplicationConfiguration::briefNameApplication) + ": Создать нового пользователя");
     newUser = true;
     userIdn = -1;
+    currentUserIdn = -1;
     ui->comboBoxPermissions->addItem("Пользователь",QVariant(UserRights::user));
     ui->comboBoxPermissions->addItem("Заполняющий",QVariant(UserRights::writer));
     ui->comboBoxPermissions->addItem("Администратор",QVariant(UserRights::admin));
@@ -200,12 +201,14 @@ bool DialogUserEdit::checkTabNumber()
     if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
 
+
+
     query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted from users,spr_job"
                   " where spr_job.idn = users.idn_job and users.tab_number=:tab_number;");
     query.bindValue(":tab_number",ui->lineEditTabNumber->text().trimmed().remove(128,ui->lineEditTabNumber->text().length()));
     if ( !query.exec() )
         QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
-    if ( query.next() )
+    if ( query.next() && query.value("idn").toInt() != userIdn )
     {
         QMessageBox::warning(0, tr("Ошибка"), "Пользователь с таким табельным номером уже существует: " + query.value("initials").toString());
         result = false;
@@ -215,4 +218,9 @@ bool DialogUserEdit::checkTabNumber()
         result = true;
     }
     return result;
+}
+
+void DialogUserEdit::recieveCurrentUserIdn(int userIdn)
+{
+    this->currentUserIdn = userIdn;
 }

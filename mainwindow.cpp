@@ -182,6 +182,9 @@ void MainWindow::showUsersSpr()
     connect(this,SIGNAL(sendUserPermissions(int)),dialogUsersWindow, SLOT(recieveUserPermissions(int)));
     emit sendUserPermissions(this->currentUserRights);
 
+    connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogUsersWindow,SLOT(recieveCurrentUserIdn(int)));
+    emit sendCurrentUserIdn(currentUserIdn);
+
     this->hide();
     dialogUsersWindow->exec();
     this->show();
@@ -285,12 +288,15 @@ void MainWindow::refreshTable()
         ui->tableWidget->insertRow(n);
         QTableWidgetItem *q = new QTableWidgetItem(query.value("num").toString());
         q->setData(Qt::UserRole,query.value("idn").toInt());
-        if ( query.value("deleted").toInt() )
-            q->setForeground(Qt::darkGray);
+        //if ( query.value("deleted").toInt() )
+        //    q->setForeground(Qt::darkGray);
         ui->tableWidget->setItem(n, 0, q);
         ui->tableWidget->setItem(n, 1, new QTableWidgetItem(query.value("fdate").toString()));
         ui->tableWidget->setItem(n, 2, new QTableWidgetItem(query.value("subject").toString()));
 
+        if ( query.value("deleted").toInt() )
+            for( int i = 0; i < ui->tableWidget->columnCount(); i++)
+                ui->tableWidget->item(n,i)->setForeground(Qt::darkGray);
     }
     db.close();
 

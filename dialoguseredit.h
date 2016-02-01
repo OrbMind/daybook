@@ -24,11 +24,13 @@ private:
     bool newUser;
     int userIdn;
     int currentUserRights;
+    int currentUserIdn;
 
 public slots:
     void recieveDbSettings(QSqlDatabase *db);
     void recieveUserIdn(int userIdn);
     void recieveUserPermissions(int userPermissions);
+    void recieveCurrentUserIdn(int userIdn);
 
 private slots:
     void on_buttonBox_accepted();

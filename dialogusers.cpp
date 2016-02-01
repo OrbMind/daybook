@@ -8,6 +8,7 @@ DialogUsers::DialogUsers(QWidget *parent) :
     ui->setupUi(this);
     this->setWindowTitle(QString(ApplicationConfiguration::briefNameApplication) + ": Справочник пользователей");
     contextTableMenu = NULL;
+    currentUserIdn = -1;
     contextTableMenu = new QMenu(this);
     createContextTableMenu();
     configTable();
@@ -76,10 +77,13 @@ void DialogUsers::refreshTable()
         ui->tableWidget->insertRow(n);
         QTableWidgetItem *q = new QTableWidgetItem(query.value(1).toString());
         q->setData(Qt::UserRole,query.value(0).toInt());
-        if ( query.value("deleted").toInt() )
-            q->setForeground(Qt::darkGray);
+        //if ( query.value("deleted").toInt() )
+        //    q->setForeground(Qt::darkGray);
         ui->tableWidget->setItem(n, 0, q);
         ui->tableWidget->setItem(n,1,new QTableWidgetItem(query.value(2).toString()));
+        if ( query.value("deleted").toInt() )
+            for( int i = 0; i < ui->tableWidget->columnCount(); i++)
+                ui->tableWidget->item(n,i)->setForeground(Qt::darkGray);
     }
     db->close();
     //restore selected item if need
@@ -106,6 +110,10 @@ void DialogUsers::addNewUser()
 
     connect(this,SIGNAL(sendUserPermissions(int)),dialogUserEditWindow, SLOT(recieveUserPermissions(int)));
     emit sendUserPermissions(this->currentUserRights);
+
+    connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogUserEditWindow,SLOT(recieveCurrentUserIdn(int)));
+    emit sendCurrentUserIdn(currentUserIdn);
+
     //connect(dialogJobEditWinow, SIGNAL(sendEditJob(QString,int,bool)), this, SLOT(recieveEditJob(QString,int,bool)) );
     dialogUserEditWindow->exec();
     dialogUserEditWindow->~DialogUserEdit();
@@ -123,6 +131,8 @@ void DialogUsers::editUser()
     emit sendUserIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt());
     connect(this,SIGNAL(sendUserPermissions(int)),dialogUserEditWindow, SLOT(recieveUserPermissions(int)));
     emit sendUserPermissions(this->currentUserRights);
+    connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogUserEditWindow,SLOT(recieveCurrentUserIdn(int)));
+    emit sendCurrentUserIdn(currentUserIdn);
 
     dialogUserEditWindow->exec();
     dialogUserEditWindow->~DialogUserEdit();
@@ -240,4 +250,9 @@ void DialogUsers::enableControls(bool enable)
 void DialogUsers::on_tableWidget_doubleClicked(const QModelIndex &index)
 {
     editUser();
+}
+
+void DialogUsers::recieveCurrentUserIdn(int userIdn)
+{
+    this->currentUserIdn = userIdn;
 }
