@@ -66,6 +66,8 @@ private slots:
     void savePositionAndSize();
     void readPositionAndSize();
 
+    void on_checkBoxToInitiate_stateChanged(int arg1);
+
 private:
     Ui::DialogDirection *ui;
     QSqlDatabase *db;

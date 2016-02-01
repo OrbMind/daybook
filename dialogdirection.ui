@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>526</width>
-    <height>442</height>
+    <width>687</width>
+    <height>543</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <iconset resource="images.qrc">
     <normaloff>:/icon/icon/icon.png</normaloff>:/icon/icon/icon.png</iconset>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>0</number>
@@ -27,114 +27,120 @@
       <attribute name="title">
        <string>Основные сведения</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_6">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0" rowspan="8">
+        <layout class="QVBoxLayout" name="verticalLayout_5">
          <item>
-          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout">
+            <layout class="QVBoxLayout" name="verticalLayout_4">
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_4">
-               <item>
-                <widget class="QLabel" name="labelNum">
-                 <property name="text">
-                  <string>Номер</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="lineEditNum">
-                 <property name="toolTip">
-                  <string>Номер распоряжения</string>
-                 </property>
-                 <property name="inputMethodHints">
-                  <set>Qt::ImhDigitsOnly|Qt::ImhFormattedNumbersOnly|Qt::ImhPreferNumbers</set>
-                 </property>
-                 <property name="maxLength">
-                  <number>5</number>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="Line" name="line">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
+              <widget class="QLabel" name="labelNum">
+               <property name="text">
+                <string>Номер</string>
                </property>
               </widget>
              </item>
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_3">
-               <item>
-                <widget class="QLabel" name="labelDdate">
-                 <property name="text">
-                  <string>Дата</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QDateEdit" name="dateEditDdate">
-                 <property name="toolTip">
-                  <string>Дата распоряжения</string>
-                 </property>
-                 <property name="displayFormat">
-                  <string>dd.MM.yyyy</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+              <widget class="QLineEdit" name="lineEditNum">
+               <property name="toolTip">
+                <string>Номер распоряжения</string>
+               </property>
+               <property name="inputMethodHints">
+                <set>Qt::ImhDigitsOnly|Qt::ImhFormattedNumbersOnly|Qt::ImhPreferNumbers</set>
+               </property>
+               <property name="maxLength">
+                <number>5</number>
+               </property>
+              </widget>
              </item>
             </layout>
            </item>
            <item>
-            <widget class="Line" name="line_3">
+            <widget class="Line" name="line">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Vertical</enum>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="labelSubject">
-             <property name="text">
-              <string>Тема</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="lineEditSubject">
-             <property name="toolTip">
-              <string>Тема распоряжения</string>
-             </property>
-             <property name="maxLength">
-              <number>1024</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="Line" name="line_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="labelText">
-             <property name="text">
-              <string>Текст</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPlainTextEdit" name="plainTextEditText">
-             <property name="toolTip">
-              <string>Текст распоряжения</string>
-             </property>
-            </widget>
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+             <item>
+              <widget class="QLabel" name="labelDdate">
+               <property name="text">
+                <string>Дата</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDateEdit" name="dateEditDdate">
+               <property name="toolTip">
+                <string>Дата распоряжения</string>
+               </property>
+               <property name="displayFormat">
+                <string>dd.MM.yyyy</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
+         <item>
+          <widget class="Line" name="line_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="labelSubject">
+           <property name="text">
+            <string>Тема</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEditSubject">
+           <property name="toolTip">
+            <string>Тема распоряжения</string>
+           </property>
+           <property name="maxLength">
+            <number>1024</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="Line" name="line_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="labelText">
+           <property name="text">
+            <string>Текст</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPlainTextEdit" name="plainTextEditText">
+           <property name="toolTip">
+            <string>Текст распоряжения</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1" rowspan="8">
+        <layout class="QVBoxLayout" name="verticalLayout_11">
          <item>
           <widget class="Line" name="line_2">
            <property name="orientation">
@@ -142,103 +148,99 @@
            </property>
           </widget>
          </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_2">
-           <property name="sizeConstraint">
-            <enum>QLayout::SetFixedSize</enum>
-           </property>
-           <item>
-            <widget class="QLabel" name="labelRequest">
-             <property name="text">
-              <string>Разрешившее лицо</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="comboBoxRequest">
-             <property name="maximumSize">
-              <size>
-               <width>180</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="toolTip">
-              <string>Пользователь разрешивший распоряжение</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="Line" name="line_5">
-             <property name="maximumSize">
-              <size>
-               <width>180</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="labelRecorded">
-             <property name="text">
-              <string>Разместившее лицо</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="comboBoxRecorded">
-             <property name="maximumSize">
-              <size>
-               <width>180</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="toolTip">
-              <string>Пользователь записавший распоряжение</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="Line" name="line_6">
-             <property name="maximumSize">
-              <size>
-               <width>180</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="labelDirectionUsers">
-             <property name="text">
-              <string>К ознакомлению</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QListWidget" name="listWidgetDirectionUsers">
-             <property name="maximumSize">
-              <size>
-               <width>180</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="contextMenuPolicy">
-              <enum>Qt::CustomContextMenu</enum>
-             </property>
-             <property name="toolTip">
-              <string>Перечень пользователей которые обязаны ознакомиться с распоряжением</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
         </layout>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="labelRequest">
+         <property name="text">
+          <string>Разрешившее лицо</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QComboBox" name="comboBoxRequest">
+         <property name="maximumSize">
+          <size>
+           <width>180</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Пользователь разрешивший распоряжение</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="Line" name="line_5">
+         <property name="maximumSize">
+          <size>
+           <width>180</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QLabel" name="labelRecorded">
+         <property name="text">
+          <string>Разместившее лицо</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QComboBox" name="comboBoxRecorded">
+         <property name="maximumSize">
+          <size>
+           <width>180</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Пользователь записавший распоряжение</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="Line" name="line_6">
+         <property name="maximumSize">
+          <size>
+           <width>180</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="2">
+        <widget class="QCheckBox" name="checkBoxToInitiate">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;К ознакомлению/только не ознакомленные&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>к ознакомлению</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="2">
+        <widget class="QListWidget" name="listWidgetDirectionUsers">
+         <property name="maximumSize">
+          <size>
+           <width>180</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::CustomContextMenu</enum>
+         </property>
+         <property name="toolTip">
+          <string>Перечень пользователей которые обязаны ознакомиться с распоряжением</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -456,7 +458,7 @@
      </widget>
     </widget>
    </item>
-   <item>
+   <item row="1" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_4">
      <item>
       <widget class="QPushButton" name="pushButtonFile">

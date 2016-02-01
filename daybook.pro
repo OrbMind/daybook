@@ -50,7 +50,7 @@ RESOURCES += \
     images.qrc
 
 # The application version
-VERSION = 0.0.0.2
+VERSION = 0.0.0.3
 
 # Define the preprocessor macro to get the application version in our application.
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"

@@ -231,6 +231,9 @@ void DialogDirection::copyToListWidgetDirectionUsers()
     ui->listWidgetDirectionUsers->clear();
     for( int i = 0; i < ui->listWidgetToInitiated->count(); ++i )
     {
+        if ( ui->checkBoxToInitiate->checkState() != Qt::Checked &&
+             QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole+1)).toInt() == 1 )
+            continue;
         ui->listWidgetDirectionUsers->insertItem(ui->listWidgetDirectionUsers->count(),
                                                  ui->listWidgetToInitiated->item(i)->clone());
     }
@@ -627,6 +630,8 @@ void DialogDirection::on_listWidgetDirectionUsers_customContextMenuRequested(con
             ui->listWidgetToInitiated->item(i)->setData(Qt::UserRole+1,q->data(Qt::UserRole+1));
             break;
         }
+
+    copyToListWidgetDirectionUsers();
     colourListWidget();
 }
 
@@ -676,7 +681,7 @@ void DialogDirection::enableControlInitiate(bool enable)
 
 void DialogDirection::on_pushButtonSetInitiated_clicked()
 {
-    for ( int i = 0; i <  ui->listWidgetDirectionUsers->count(); i++ )
+    /*for ( int i = 0; i <  ui->listWidgetDirectionUsers->count(); i++ )
     {
         if ( QVariant(ui->listWidgetDirectionUsers->item(i)->data(Qt::UserRole)).toInt() ==
              currentUserIdn )
@@ -684,7 +689,7 @@ void DialogDirection::on_pushButtonSetInitiated_clicked()
             ui->listWidgetDirectionUsers->item(i)->setData(Qt::UserRole+1,QVariant(1));
             break;
         }
-    }
+    }*/
 
     for ( int i = 0; i < ui->listWidgetToInitiated->count(); ++ i)
         if ( currentUserIdn ==
@@ -694,6 +699,8 @@ void DialogDirection::on_pushButtonSetInitiated_clicked()
             //ui->listWidgetToInitiated->item(i)->setSelected(true);
             break;
         }
+
+    copyToListWidgetDirectionUsers();
     colourListWidget();
     enableControlInitiate(false);
 }
@@ -736,4 +743,9 @@ void DialogDirection::readPositionAndSize()
         move(settingsApp->value("pos",QPoint(700,500)).toPoint());
         settingsApp->endGroup();
     }
+}
+
+void DialogDirection::on_checkBoxToInitiate_stateChanged(int arg1)
+{
+    copyToListWidgetDirectionUsers();
 }
