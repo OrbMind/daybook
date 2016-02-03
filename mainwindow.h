@@ -12,6 +12,7 @@
 #include <dialogabout.h>
 #include <dialogentersoft.h>
 #include <dialogoptions.h>
+#include <dialogchangepassword.h>
 
 namespace Ui {
 class MainWindow;
@@ -28,6 +29,7 @@ public:
 public slots:
     bool enterSoft();
     void recieveAuthorizedUserIdn(int userIdn);
+    void prepareWindow();
 
 private:
     Ui::MainWindow *ui;
@@ -68,6 +70,8 @@ private slots:
     void readMainWindowSettings();
     void readMainWindowFilterSettings();
     void closeEvent(QCloseEvent *);
+    void showDialogChangePassword();
+    void makeCreateShortcut();
 
 signals:
     void sendDbSettings(QSqlDatabase *db);

@@ -31,11 +31,14 @@ namespace Act
 {
     const int read = 0;
     //const int add = 1;
-    const int edit = 2;
+    //const int edit = 2;
     //const int del = 3;
     //const int restore = 4;
     const int initiate = 5;
     const int showAdminInfo = 6;
+    const int editDirection = 7;
+    const int editJob = 8;
+    const int editUser = 9;
     bool userPermission(int actionId,int userPermission);
 }
 

@@ -29,8 +29,9 @@ public slots:
     void recieveUserPermissions(int userPermissions);
 
 private slots:
-    void on_buttonBoxOkCancel_accepted();
     void enableControls(bool enable);
+    void on_buttonBox_accepted();
+    void on_buttonBox_rejected();
 
 signals:
     void sendEditJob(QString jobName,int jobIdn,bool newJob);

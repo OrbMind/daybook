@@ -156,7 +156,7 @@ void DialogJob::restoreJob()
 
 void DialogJob::recieveEditJob(QString jobName,int jobIdn,bool newJob)
 {
-    if ( !Act::userPermission(Act::edit,currentUserRights) ) return;
+    if ( !Act::userPermission(Act::editJob,currentUserRights) ) return;
     if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
 
@@ -242,7 +242,7 @@ void DialogJob::on_tableWidget_customContextMenuRequested(const QPoint &pos)
 void DialogJob::recieveUserPermissions(int userPermissions)
 {
     this->currentUserRights = userPermissions;
-    enableControls(Act::userPermission(Act::edit,userPermissions));
+    enableControls(Act::userPermission(Act::editJob,userPermissions));
 }
 
 void DialogJob::enableControls(bool enable)
@@ -257,5 +257,6 @@ void DialogJob::enableControls(bool enable)
 
 void DialogJob::on_tableWidget_doubleClicked(const QModelIndex &index)
 {
+    Q_UNUSED(index);
     editJob();
 }

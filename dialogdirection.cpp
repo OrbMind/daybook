@@ -80,8 +80,13 @@ void DialogDirection::recieveDirectionIdn(int directionIdn)
         idnRecorded = currentDirection.idnRecorded;
         idnRequested = currentDirection.idnRequested;
 
+        //db->close();
 
-        fillUsersList();
+
+
+        //if ( !query.exec() )
+        //    QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        //query.next();
 
         currentDirection.num = query.value("num").toInt();
         currentDirection.subject = query.value("subject").toString();
@@ -95,13 +100,15 @@ void DialogDirection::recieveDirectionIdn(int directionIdn)
         ui->dateEditDdate->setDate(currentDirection.ddate);
         ui->lineEditFilePath->setText(currentDirection.file);
 
+        query.clear();
+        db->close();
+
+        fillUsersList();
+
         ui->comboBoxRecorded->setCurrentIndex(
             ui->comboBoxRecorded->findData(QVariant(currentDirection.idnRecorded),Qt::UserRole));
         ui->comboBoxRequest->setCurrentIndex(
             ui->comboBoxRequest->findData(QVariant(currentDirection.idnRequested),Qt::UserRole));
-
-        query.clear();
-        db->close();
 
         fillInitiatedUsers();
         this->setWindowTitle(QString(ApplicationConfiguration::briefNameApplication) + ": Редактирование/просмотр распоряжения");
@@ -256,6 +263,8 @@ void DialogDirection::on_pushButtonRemoveSelectedUsers_clicked()
 void DialogDirection::on_pushButtonChooseFilePath_clicked()
 {
     ui->lineEditFilePath->setText(QDir::toNativeSeparators(QFileDialog::getOpenFileName(this, tr("Выбрать файл:"),".",tr("Файл *.* (*.*)"))));
+    QFileInfo fI(ui->lineEditFilePath->text());
+    QDir::setCurrent(fI.absoluteDir().path());
 }
 
 void DialogDirection::on_lineEditFilePath_textChanged(const QString &arg1)
@@ -386,7 +395,7 @@ void DialogDirection::saveInitiatedUsers()
 
 void DialogDirection::on_buttonBox_accepted()
 {
-    if (!Act::userPermission(Act::edit,currentUserRights) &&
+    if (!Act::userPermission(Act::editDirection,currentUserRights) &&
     !Act::userPermission(Act::initiate,currentUserRights) )
         return;
     //if ( !Act::userPermission(Act::edit,currentUserRights) ) return;
@@ -608,9 +617,9 @@ void DialogDirection::on_listWidgetDirectionUsers_customContextMenuRequested(con
     q->setSelected(true); // fix bug with quick click
 
     contextTableMenu->actions().at(0)->setEnabled( ( QVariant(q->data(Qt::UserRole+1)).toInt() == 0 )
-                                                   and Act::userPermission(Act::edit,currentUserRights));
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
     contextTableMenu->actions().at(2)->setEnabled( ( QVariant(q->data(Qt::UserRole+1)).toInt() == 1 )
-                                                   and Act::userPermission(Act::edit,currentUserRights));
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
 
     QAction* selectedItem = contextTableMenu->exec(QCursor::pos());
     if ( !selectedItem ) return;
@@ -652,7 +661,7 @@ void DialogDirection::on_pushButtonFile_clicked()
 void DialogDirection::recieveUserPermissions(int userPermissions)
 {
     this->currentUserRights = userPermissions;
-    enableControls(Act::userPermission(Act::edit,userPermissions));
+    enableControls(Act::userPermission(Act::editDirection,userPermissions));
 }
 
 void DialogDirection::enableControls(bool enable)
@@ -747,5 +756,6 @@ void DialogDirection::readPositionAndSize()
 
 void DialogDirection::on_checkBoxToInitiate_stateChanged(int arg1)
 {
+    Q_UNUSED(arg1);
     copyToListWidgetDirectionUsers();
 }

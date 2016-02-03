@@ -79,7 +79,7 @@ void DialogUserEdit::refreshData()
 
 void DialogUserEdit::on_buttonBox_accepted()
 {
-    if ( !Act::userPermission(Act::edit,currentUserRights) ) return;
+    if ( !Act::userPermission(Act::editUser,currentUserRights) ) return;
 
     if ( newUser && checkInput() )
     {
@@ -92,7 +92,7 @@ void DialogUserEdit::on_buttonBox_accepted()
         query.bindValue(":patronymic",ui->lineEditPatronymic->text().trimmed().remove(128,ui->lineEditPatronymic->text().length()));
         query.bindValue(":permissions",ui->comboBoxPermissions->currentData(Qt::UserRole).toInt());
         query.bindValue(":tab_number",ui->lineEditTabNumber->text().trimmed().remove(128,ui->lineEditTabNumber->text().length()));
-        query.bindValue(":upassword",ui->lineEditPassword->text().trimmed().remove(256,ui->lineEditPassword->text().length()));
+        query.bindValue(":upassword",ui->lineEditPassword->text());
         if ( !query.exec() )
             QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db->close();
@@ -110,7 +110,7 @@ void DialogUserEdit::on_buttonBox_accepted()
         query.bindValue(":patronymic",ui->lineEditPatronymic->text().trimmed().remove(128,ui->lineEditPatronymic->text().length()));
         query.bindValue(":permissions",ui->comboBoxPermissions->currentData(Qt::UserRole).toInt());
         query.bindValue(":tab_number",ui->lineEditTabNumber->text().trimmed().remove(128,ui->lineEditTabNumber->text().length()));
-        query.bindValue(":upassword",ui->lineEditPassword->text().trimmed().remove(256,ui->lineEditPassword->text().length()));
+        query.bindValue(":upassword",ui->lineEditPassword->text());
         query.bindValue(":idn",userIdn);
 
         if ( !query.exec() )
@@ -181,7 +181,7 @@ void DialogUserEdit::on_buttonBox_rejected()
 void DialogUserEdit::recieveUserPermissions(int userPermissions)
 {
     this->currentUserRights = userPermissions;
-    enableControls(Act::userPermission(Act::edit,userPermissions));
+    enableControls(Act::userPermission(Act::editUser,userPermissions));
 }
 
 void DialogUserEdit::enableControls(bool enable)

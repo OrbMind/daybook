@@ -9,8 +9,17 @@ bool Act::userPermission(int actionId,int userPermission)
         //case Act::add:
         //    result = ( userPermission == UserRights::admin || userPermission == UserRights::writer );
         //break;
-        case Act::edit:
-            result = ( userPermission == UserRights::admin || userPermission == UserRights::writer );
+        //case Act::edit:
+        //    result = ( userPermission == UserRights::admin || userPermission == UserRights::writer );
+        //break;
+        case Act::editDirection:
+              result = ( userPermission == UserRights::admin || userPermission == UserRights::writer );
+        break;
+        case Act::editJob:
+              result = ( userPermission == UserRights::admin );
+        break;
+        case Act::editUser:
+              result = ( userPermission == UserRights::admin );
         break;
         //case Act::del:
         //    result = ( userPermission == UserRights::admin || userPermission == UserRights::writer );

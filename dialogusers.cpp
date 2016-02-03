@@ -234,7 +234,7 @@ void DialogUsers::on_pushButtonFind_clicked()
 void DialogUsers::recieveUserPermissions(int userPermissions)
 {
     this->currentUserRights = userPermissions;
-    enableControls(Act::userPermission(Act::edit,userPermissions));
+    enableControls(Act::userPermission(Act::editUser,userPermissions));
 }
 
 void DialogUsers::enableControls(bool enable)
@@ -249,6 +249,7 @@ void DialogUsers::enableControls(bool enable)
 
 void DialogUsers::on_tableWidget_doubleClicked(const QModelIndex &index)
 {
+    Q_UNUSED(index);
     editUser();
 }
 

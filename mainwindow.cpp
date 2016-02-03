@@ -46,6 +46,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->comboBoxDate->addItem("За эту неделю");
     ui->comboBoxDate->addItem("За этот месяц");
     ui->comboBoxDate->addItem("За этот год");
+
+#ifdef Q_OS_WIN32
+    ui->actionCreateShortcut->setEnabled(true);
+#else
+    ui->actionCreateShortcut->setEnabled(false);
+#endif
+}
+
+void MainWindow::prepareWindow()
+{
     on_comboBoxDate_currentIndexChanged(2);
     on_comboBoxDate_currentIndexChanged(0);
 
@@ -137,6 +147,14 @@ void MainWindow::createMenuActions()
     connect(ui->actionUsers,SIGNAL(triggered()),this,SLOT(showUsersSpr()));
     connect(ui->actionAbout,SIGNAL(triggered()),this,SLOT(showDialogAbout()));
     connect(ui->actionMainSettings,SIGNAL(triggered()),this,SLOT(showSettingsApp()));
+    connect(ui->actionChangePassword,SIGNAL(triggered(bool)),this,SLOT(showDialogChangePassword()));
+    connect(ui->actionCreateShortcut,SIGNAL(triggered(bool)),this,SLOT(makeCreateShortcut()));
+}
+
+void MainWindow::makeCreateShortcut()
+{
+    QDir::setCurrent(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+    QFile::link(qApp->applicationFilePath(),QString(ApplicationConfiguration::briefNameApplication) + ".lnk");
 }
 
 void MainWindow::showDialogAbout()
@@ -154,6 +172,22 @@ void MainWindow::showDialogAbout()
 
     dialogAboutWindow->~DialogAbout();
     dialogAboutWindow = NULL;
+}
+
+void MainWindow::showDialogChangePassword()
+{
+    DialogChangePassword* dialogChangePasswordWindow = new DialogChangePassword;
+    dialogChangePasswordWindow->setModal(true);
+
+    connect(this, SIGNAL(sendDbSettings(QSqlDatabase*)), dialogChangePasswordWindow, SLOT(recieveDbSettings(QSqlDatabase*)));
+    emit sendDbSettings(&this->db);
+
+    connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogChangePasswordWindow,SLOT(recieveCurrentUserIdn(int)));
+    emit sendCurrentUserIdn(currentUserIdn);
+
+    dialogChangePasswordWindow->exec();
+    dialogChangePasswordWindow->~DialogChangePassword();
+    dialogChangePasswordWindow = NULL;
 }
 
 void MainWindow::showJobSpr()
@@ -232,7 +266,7 @@ void MainWindow::refreshTable()
     if ( ui->checkBoxForInitiated->checkState() == Qt::Checked )
         sq = sq + ",direction_users";
     sq = sq + " where ( (coalesce(:deleted,-1) = -1) or (directions.deleted=:deleted)  )";
-    " and directions.ddate between :dfrom and :dto";
+    sq = sq + " and directions.ddate between :dfrom and :dto";
     //" and ( (coalesce(:idn_user,-1) = -1) or (direction_users.idn_direction=directions.idn and direction_users.idn_user=:idn_user and direction_users.initiated=0) )";
 
     if ( ui->lineEditFind->text().trimmed().count() > 0 )
@@ -462,6 +496,7 @@ void MainWindow::restoreDirection()
 
 void MainWindow::on_tableWidget_doubleClicked(const QModelIndex &index)
 {
+    Q_UNUSED(index);
     editDirection();
 }
 
@@ -472,6 +507,7 @@ void MainWindow::recieveAuthorizedUserIdn(int userIdn)
     {
         this->currentUserRights = UserRights::readonly;
         statusBar()->addPermanentWidget(new QLabel("Пользователь: Гость",this));
+        ui->actionChangePassword->setEnabled(false);
     }
     else
     {
@@ -500,7 +536,7 @@ void MainWindow::recieveAuthorizedUserIdn(int userIdn)
         }
         db.close();
     }
-    enableControls(Act::userPermission(Act::edit,this->currentUserRights));
+    enableControls(Act::userPermission(Act::editDirection,this->currentUserRights));
     refreshTable();
 }
 
@@ -586,7 +622,7 @@ void MainWindow::saveSettings()
     savePosition = settingsApp->value("saveposition",false).toBool();
     settingsApp->endGroup();
 
-    if ( saveLastUser )
+    if ( saveLastUser && currentUserIdn != ApplicationConfiguration::idnGuest)
     {
         settingsApp->beginGroup("main");
         settingsApp->setValue("lastuser",currentUserLogin);

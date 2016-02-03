@@ -26,22 +26,10 @@ void DialogJobEdit::recieveJobName(QString jobName,int jobIdn)
     ui->lineEditJob->setText(this->jobName.trimmed());
 }
 
-void DialogJobEdit::on_buttonBoxOkCancel_accepted()
-{
-    if ( ui->lineEditJob->text().trimmed() == "")
-    {
-        QMessageBox::information(this, "Внимание!", "Наименование должности не может быть пустым.");
-    } else if ( !newJob && ui->lineEditJob->text().trimmed() == jobName.trimmed() )
-    {
-        QMessageBox::information(this, "Внимание!", "Наименование должности не изменилось");
-    } else
-        emit sendEditJob(ui->lineEditJob->text(),jobIdn,newJob);
-}
-
 void DialogJobEdit::recieveUserPermissions(int userPermissions)
 {
     this->currentUserRights = userPermissions;
-    enableControls(Act::userPermission(Act::edit,userPermissions));
+    enableControls(Act::userPermission(Act::editJob,userPermissions));
 
 }
 
@@ -50,3 +38,25 @@ void DialogJobEdit::enableControls(bool enable)
     ui->lineEditJob->setEnabled(enable);
 }
 
+
+void DialogJobEdit::on_buttonBox_accepted()
+{
+    if ( !Act::userPermission(Act::editJob,currentUserRights) ) return;
+
+    if ( ui->lineEditJob->text().trimmed() == "")
+    {
+        QMessageBox::information(this, "Внимание!", "Наименование должности не может быть пустым.");
+    } else if ( !newJob && ui->lineEditJob->text().trimmed() == jobName.trimmed() )
+    {
+        QMessageBox::information(this, "Внимание!", "Наименование должности не изменилось");
+    } else
+    {
+        emit sendEditJob(ui->lineEditJob->text(),jobIdn,newJob);
+        this->accept();
+    }
+}
+
+void DialogJobEdit::on_buttonBox_rejected()
+{
+    this->reject();
+}

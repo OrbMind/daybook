@@ -23,6 +23,7 @@ bool DialogEnterSoft::checkDbAndVer()
     if (!db->open())
     {
         QMessageBox::critical(0, tr("Database Error"), "Невозможно подключиться к базе данных.\n" + db->lastError().text());
+        db->close();
         return false;
     }
 
@@ -87,11 +88,13 @@ void DialogEnterSoft::on_buttonBox_accepted()
             //enableAllControls(false);
             //QEventLoop loop; QTimer::singleShot(600, &loop, SLOT(enableAllControls(true))); loop.exec();
         }
+        db->close();
         return;
     }
 
-    this->accept();
     db->close();
+    this->accept();
+
 }
 
 void DialogEnterSoft::on_buttonBox_rejected()

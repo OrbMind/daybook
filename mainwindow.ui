@@ -314,6 +314,7 @@
     <property name="title">
      <string>Файл</string>
     </property>
+    <addaction name="actionCreateShortcut"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
@@ -323,6 +324,7 @@
     <addaction name="actionJob"/>
     <addaction name="actionUsers"/>
     <addaction name="actionMainSettings"/>
+    <addaction name="actionChangePassword"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -358,6 +360,19 @@
   <action name="actionMainSettings">
    <property name="text">
     <string>Общие настройки</string>
+   </property>
+  </action>
+  <action name="actionChangePassword">
+   <property name="text">
+    <string>Сменить пароль</string>
+   </property>
+  </action>
+  <action name="actionCreateShortcut">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Создать ярлык на рабочем столе</string>
    </property>
   </action>
  </widget>

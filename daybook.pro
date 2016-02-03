@@ -23,7 +23,8 @@ SOURCES += main.cpp\
     dialogabout.cpp \
     dialogentersoft.cpp \
     maindef.cpp \
-    dialogoptions.cpp
+    dialogoptions.cpp \
+    dialogchangepassword.cpp
 
 HEADERS  += mainwindow.h \
     dialogjob.h \
@@ -34,7 +35,8 @@ HEADERS  += mainwindow.h \
     maindef.h \
     dialogabout.h \
     dialogentersoft.h \
-    dialogoptions.h
+    dialogoptions.h \
+    dialogchangepassword.h
 
 FORMS    += mainwindow.ui \
     dialogjob.ui \
@@ -44,13 +46,14 @@ FORMS    += mainwindow.ui \
     dialogdirection.ui \
     dialogabout.ui \
     dialogentersoft.ui \
-    dialogoptions.ui
+    dialogoptions.ui \
+    dialogchangepassword.ui
 
 RESOURCES += \
     images.qrc
 
 # The application version
-VERSION = 0.0.0.3
+VERSION = 1.0.0.0
 
 # Define the preprocessor macro to get the application version in our application.
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"

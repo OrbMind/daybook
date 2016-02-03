@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
     MainWindow w;
     if ( w.enterSoft() )
     {
+        w.prepareWindow();
         w.show();
         return a.exec();
     }
@@ -17,5 +18,5 @@ int main(int argc, char *argv[])
     {
         qApp->quit();
     }
-
+    return 0;
 }
