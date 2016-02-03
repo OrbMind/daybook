@@ -193,6 +193,9 @@ void DialogUserEdit::enableControls(bool enable)
     ui->lineEditPatronymic->setEnabled(enable);
     ui->lineEditSurname->setEnabled(enable);
     ui->lineEditTabNumber->setEnabled(enable);
+
+    if ( !enable )
+        ui->lineEditTabNumber->setEchoMode(QLineEdit::Password);
 }
 
 bool DialogUserEdit::checkTabNumber()
