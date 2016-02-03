@@ -60,6 +60,8 @@ void MainWindow::prepareWindow()
     on_comboBoxDate_currentIndexChanged(0);
 
     readMainWindowSettings();
+
+    ui->pushButtonFind->click();
 }
 
 bool MainWindow::enterSoft()
@@ -250,7 +252,7 @@ void MainWindow::refreshTable()
 {
     int selectedIdn = -1;
     if ( ui->tableWidget->selectedItems().count() > 0)
-        selectedIdn = QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole)).toInt();
+        selectedIdn = QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt();
     //clear table
     int n = ui->tableWidget->rowCount();
     for( int i =0; i < n; i++ ) ui->tableWidget->removeRow(0);
@@ -321,9 +323,8 @@ void MainWindow::refreshTable()
         n = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(n);
         QTableWidgetItem *q = new QTableWidgetItem(query.value("num").toString());
-        q->setData(Qt::UserRole,query.value("idn").toInt());
-        //if ( query.value("deleted").toInt() )
-        //    q->setForeground(Qt::darkGray);
+        q->setData(DataRole::idn,query.value("idn").toInt());
+        q->setData(DataRole::deleted,query.value("deleted").toInt());
         ui->tableWidget->setItem(n, 0, q);
         ui->tableWidget->setItem(n, 1, new QTableWidgetItem(query.value("fdate").toString()));
         ui->tableWidget->setItem(n, 2, new QTableWidgetItem(query.value("subject").toString()));
@@ -339,7 +340,7 @@ void MainWindow::refreshTable()
     {
         n = ui->tableWidget->rowCount();
         for( int i = 0; i < n; i++ )
-            if ( QVariant(ui->tableWidget->item(i,0)->data(Qt::UserRole)).toInt() == selectedIdn )
+            if ( QVariant(ui->tableWidget->item(i,0)->data(DataRole::idn)).toInt() == selectedIdn )
             {
                 ui->tableWidget->selectRow(i);
                 break;
@@ -402,7 +403,7 @@ void MainWindow::editDirection()
         connect(this, SIGNAL(sendDbSettings(QSqlDatabase*)), dialogDirectionWindow, SLOT(recieveDbSettings(QSqlDatabase*)));
         emit sendDbSettings(&this->db);
         connect(this, SIGNAL(sendDirectionIdn(int)), dialogDirectionWindow, SLOT(recieveDirectionIdn(int)));
-        emit sendDirectionIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt());
+        emit sendDirectionIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt());
         connect(this,SIGNAL(sendUserPermissions(int)),dialogDirectionWindow, SLOT(recieveUserPermissions(int)));
         emit sendUserPermissions(this->currentUserRights);
         connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogDirectionWindow,SLOT(recieveCurrentUserIdn(int)));
@@ -425,7 +426,7 @@ void MainWindow::deleteDirection()
         QSqlQuery query(db);
 
         query.prepare("UPDATE directions SET deleted=1 where idn=:idn");
-        query.bindValue(":idn",QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole)).toInt());
+        query.bindValue(":idn",QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt());
         if ( !query.exec() )
             QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db.close();
@@ -443,7 +444,7 @@ void MainWindow::createContextTableMenu()
 {
     contextTableMenu->clear();
     contextTableMenu->addAction(QIcon(":/images/icon/add.png"),"Добавить");
-    contextTableMenu->addAction(QIcon(":/images/icon/edit.png"),"Править/Просмотреть");
+    contextTableMenu->addAction(QIcon(":/images/icon/edit.png"),"Править/Просмотр");
     contextTableMenu->addAction(QIcon(":/images/icon/remove.png"),"Удалить");
     contextTableMenu->addSeparator();
     contextTableMenu->addAction(QIcon(":/images/icon/restore.png"),"Восстановить");
@@ -456,12 +457,17 @@ void MainWindow::on_tableWidget_customContextMenuRequested(const QPoint &pos)
 
     ui->tableWidget->selectRow(q->row()); // fix bug with quick right click
 
+    contextTableMenu->actions().at(2)->setEnabled( ( QVariant(ui->tableWidget->item(q->row(),0)->data(DataRole::deleted)).toInt() == 0 )
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
+    contextTableMenu->actions().at(4)->setEnabled( ( QVariant(ui->tableWidget->item(q->row(),0)->data(DataRole::deleted)).toInt() == 1 )
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
+
     QAction* selectedItem = contextTableMenu->exec(QCursor::pos());
     if ( !selectedItem ) return;
     if ( selectedItem->text() == "Добавить")
     {
         addNewDirection();
-    } else if ( selectedItem->text() == "Править/Просмотреть")
+    } else if ( selectedItem->text() == "Править/Просмотр")
     {
         ui->tableWidget->setCurrentCell(q->row(),q->column());
         editDirection();
@@ -484,7 +490,7 @@ void MainWindow::restoreDirection()
         QSqlQuery query(db);
 
         query.prepare("UPDATE directions SET deleted=0 where idn=:idn");
-        query.bindValue(":idn",QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole)).toInt());
+        query.bindValue(":idn",QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt());
         if ( !query.exec() )
             QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db.close();

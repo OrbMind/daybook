@@ -1,7 +1,7 @@
 #ifndef MAINDEF_H
 #define MAINDEF_H
 
-
+#include <QtCore>
 
 namespace ApplicationConfiguration
 {
@@ -40,6 +40,12 @@ namespace Act
     const int editJob = 8;
     const int editUser = 9;
     bool userPermission(int actionId,int userPermission);
+}
+
+namespace DataRole
+{
+    const int idn = Qt::UserRole;
+    const int deleted = Qt::UserRole + 1;
 }
 
 #endif // MAINDEF_H

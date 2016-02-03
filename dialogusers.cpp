@@ -51,7 +51,7 @@ void DialogUsers::refreshTable()
     //remember selected item
     int selectedIdn = -1;
     if ( ui->tableWidget->selectedItems().count() > 0)
-        selectedIdn = ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt();
+        selectedIdn = ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt();
     //clear table
     int n = ui->tableWidget->rowCount();
     for( int i =0; i < n; i++ ) ui->tableWidget->removeRow(0);
@@ -75,12 +75,11 @@ void DialogUsers::refreshTable()
     {
         n = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(n);
-        QTableWidgetItem *q = new QTableWidgetItem(query.value(1).toString());
-        q->setData(Qt::UserRole,query.value(0).toInt());
-        //if ( query.value("deleted").toInt() )
-        //    q->setForeground(Qt::darkGray);
+        QTableWidgetItem *q = new QTableWidgetItem(query.value("initials").toString());
+        q->setData(DataRole::idn,query.value("idn").toInt());
+        q->setData(DataRole::deleted,query.value("deleted").toInt());
         ui->tableWidget->setItem(n, 0, q);
-        ui->tableWidget->setItem(n,1,new QTableWidgetItem(query.value(2).toString()));
+        ui->tableWidget->setItem(n,1,new QTableWidgetItem(query.value("job").toString()));
         if ( query.value("deleted").toInt() )
             for( int i = 0; i < ui->tableWidget->columnCount(); i++)
                 ui->tableWidget->item(n,i)->setForeground(Qt::darkGray);
@@ -91,7 +90,7 @@ void DialogUsers::refreshTable()
     {
         n = ui->tableWidget->rowCount();
         for( int i = 0; i < n; i++ )
-            if ( ui->tableWidget->item(i,0)->data(Qt::UserRole).toInt() == selectedIdn )
+            if ( ui->tableWidget->item(i,0)->data(DataRole::idn).toInt() == selectedIdn )
             {
                 ui->tableWidget->setCurrentCell(i,0);
                 break;
@@ -128,7 +127,7 @@ void DialogUsers::editUser()
     connect(this, SIGNAL(sendDbSettings(QSqlDatabase*)), dialogUserEditWindow, SLOT(recieveDbSettings(QSqlDatabase*)));
     emit sendDbSettings(this->db);
     connect(this, SIGNAL(sendUserIdn(int)), dialogUserEditWindow, SLOT(recieveUserIdn(int)) );
-    emit sendUserIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt());
+    emit sendUserIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt());
     connect(this,SIGNAL(sendUserPermissions(int)),dialogUserEditWindow, SLOT(recieveUserPermissions(int)));
     emit sendUserPermissions(this->currentUserRights);
     connect(this,SIGNAL(sendCurrentUserIdn(int)),dialogUserEditWindow,SLOT(recieveCurrentUserIdn(int)));
@@ -148,7 +147,7 @@ void DialogUsers::deleteUser()
         if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE users SET deleted=1 WHERE idn=:idn");
-        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt()));
+        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
             QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
@@ -164,7 +163,7 @@ void DialogUsers::restoreUser()
         if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE users SET deleted=0 WHERE idn=:idn");
-        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt()));
+        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
             QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
@@ -205,6 +204,12 @@ void DialogUsers::on_tableWidget_customContextMenuRequested(const QPoint &pos)
 {
     QTableWidgetItem *q = ui->tableWidget->itemAt(pos);
     if ( q == NULL ) return;
+    ui->tableWidget->selectRow(q->row()); // fix bug with quick right click
+
+    contextTableMenu->actions().at(2)->setEnabled( ( QVariant(ui->tableWidget->item(q->row(),0)->data(DataRole::deleted)).toInt() == 0 )
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
+    contextTableMenu->actions().at(4)->setEnabled( ( QVariant(ui->tableWidget->item(q->row(),0)->data(DataRole::deleted)).toInt() == 1 )
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
 
     QAction* selectedItem = contextTableMenu->exec(QCursor::pos());
     if ( !selectedItem ) return;

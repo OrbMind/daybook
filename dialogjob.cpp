@@ -71,8 +71,9 @@ void DialogJob::refreshTable()
         n = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(n);
         QTableWidgetItem *q = new QTableWidgetItem(query.value(1).toString());
-        q->setData(Qt::UserRole,query.value(0).toInt());
-        if ( query.value(2).toInt() )
+        q->setData(DataRole::idn,query.value("idn").toInt());
+        q->setData(DataRole::deleted,query.value("deleted").toInt());
+        if ( query.value("deleted").toInt() )
             q->setForeground(Qt::darkGray);
         ui->tableWidget->setItem(n, 0, q);
 
@@ -83,7 +84,7 @@ void DialogJob::refreshTable()
     {
         n = ui->tableWidget->rowCount();
         for( int i = 0; i < n; i++ )
-            if ( ui->tableWidget->item(i,0)->data(Qt::UserRole).toInt() == selectedIdn )
+            if ( ui->tableWidget->item(i,0)->data(DataRole::idn).toInt() == selectedIdn )
             {
                 ui->tableWidget->setCurrentCell(i,0);
                 break;
@@ -116,7 +117,7 @@ void DialogJob::editJob()
     connect(this, SIGNAL(sendJobName(QString,int)), dialogJobEditWinow, SLOT(recieveJobName(QString,int)));
     connect(dialogJobEditWinow, SIGNAL(sendEditJob(QString,int,bool)), this, SLOT(recieveEditJob(QString,int,bool)) );
     emit sendJobName(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->text(),
-                     ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt());
+                     ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt());
     connect(this,SIGNAL(sendUserPermissions(int)),dialogJobEditWinow, SLOT(recieveUserPermissions(int)));
     emit sendUserPermissions(this->currentUserRights);
     dialogJobEditWinow->exec();
@@ -131,7 +132,7 @@ void DialogJob::deleteJob()
         if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE spr_job SET deleted=1 WHERE idn=:idn");
-        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt()));
+        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
             QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
@@ -146,7 +147,7 @@ void DialogJob::restoreJob()
         if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE spr_job SET deleted=0 WHERE idn=:idn");
-        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt()));
+        query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
             QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
@@ -217,6 +218,12 @@ void DialogJob::on_tableWidget_customContextMenuRequested(const QPoint &pos)
 {
     QTableWidgetItem *q = ui->tableWidget->itemAt(pos);
     if ( q == NULL ) return;
+    q->setSelected(true); // fix bug with quick click
+
+    contextTableMenu->actions().at(2)->setEnabled( ( QVariant(ui->tableWidget->item(q->row(),0)->data(DataRole::deleted)).toInt() == 0 )
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
+    contextTableMenu->actions().at(4)->setEnabled( ( QVariant(ui->tableWidget->item(q->row(),0)->data(DataRole::deleted)).toInt() == 1 )
+                                                   and Act::userPermission(Act::editDirection,currentUserRights));
 
     QAction* selectedItem = contextTableMenu->exec(QCursor::pos());
     if ( !selectedItem ) return;
