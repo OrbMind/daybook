@@ -12,28 +12,18 @@ MainWindow::MainWindow(QWidget *parent) :
     settingsApp = NULL;
     currentUserRights = UserRights::readonly;
 
-    //QString pathForStoreSettings = QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)) + QDir::separator();
-
-    //QDir dir = QDir::root();
-    //dir.mkpath( pathForStoreSettings );
-    //QDir::mkpath(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)));
     this->settingsApp = new QSettings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) +
             QDir::separator() +
             QCoreApplication::applicationName() + ".ini",
             QSettings::IniFormat);
-    //QMessageBox::critical(this,"info",this->settingsApp->fileName());
-
-    //this->settingsApp = new QSettings( pathForStoreSettings +
-    //                             QCoreApplication::applicationName() + ".ini",
-    //                             QSettings::IniFormat);
 
     this->setWindowTitle(QString(ApplicationConfiguration::fullNameApplication));
 
 
     createMenuActions();
 
-    ui->widgetExtendedOptions->setVisible(false);
-    ui->pushButtonMoreOptions->setIcon(QIcon(":/images/icon/more.png"));
+    ui->widgetExtendedOptions->setVisible(true);
+    ui->pushButtonMoreOptions->setIcon(QIcon(":/images/icon/less.png"));
 
     if( ! configDB() ) exit(1);
 
@@ -56,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::prepareWindow()
 {
-    on_comboBoxDate_currentIndexChanged(2);
+    on_comboBoxDate_currentIndexChanged(3);
     on_comboBoxDate_currentIndexChanged(0);
 
     readMainWindowSettings();
