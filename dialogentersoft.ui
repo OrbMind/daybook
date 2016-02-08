@@ -27,7 +27,7 @@
    <item row="0" column="0" colspan="2">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Имя пользователя:</string>
+      <string>Идентификатор</string>
      </property>
     </widget>
    </item>
