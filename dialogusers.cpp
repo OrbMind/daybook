@@ -52,11 +52,12 @@ void DialogUsers::refreshTable()
     int selectedIdn = -1;
     if ( ui->tableWidget->selectedItems().count() > 0)
         selectedIdn = ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt();
+    ui->tableWidget->setSortingEnabled(false);
     //clear table
     int n = ui->tableWidget->rowCount();
     for( int i =0; i < n; i++ ) ui->tableWidget->removeRow(0);
     //try to open database
-    if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::warning(this, tr("Database Error"), db->lastError().text()); }
     //prepare query for all records, or apply filter
     QSqlQuery query(*db);
     if ( ui->lineEditFind->text().trimmed() != "" )
@@ -69,7 +70,7 @@ void DialogUsers::refreshTable()
         query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted from users,spr_job where spr_job.idn = users.idn_job;");
     //execute query
     if ( !query.exec() )
-        QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::warning(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     //adding records to table
     while (query.next())
     {
@@ -85,6 +86,7 @@ void DialogUsers::refreshTable()
                 ui->tableWidget->item(n,i)->setForeground(Qt::darkGray);
     }
     db->close();
+    ui->tableWidget->setSortingEnabled(true);
     //restore selected item if need
     if ( selectedIdn != -1 )
     {
@@ -144,15 +146,15 @@ void DialogUsers::deleteUser()
 {
     if ( ui->tableWidget->selectedItems().count() )
     {
-        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE users SET deleted=1 WHERE idn=:idn");
         query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
-            QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::warning(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
     } else
-        QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для удаления.");
+        QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для удаления.");
     refreshTable();
 }
 
@@ -160,15 +162,15 @@ void DialogUsers::restoreUser()
 {
     if ( ui->tableWidget->selectedItems().count() )
     {
-        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE users SET deleted=0 WHERE idn=:idn");
         query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
-            QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::warning(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
     } else
-        QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для удаления.");
+        QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для удаления.");
     refreshTable();
 }
 
@@ -182,7 +184,7 @@ void DialogUsers::on_pushButtonEdit_clicked()
     if ( ui->tableWidget->selectedItems().count() )
         editUser();
     else
-        QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
+        QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
 }
 
 void DialogUsers::on_pushButtonDelete_clicked()

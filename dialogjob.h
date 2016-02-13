@@ -23,7 +23,6 @@ private slots:
     void on_pushButtonClose_clicked();
     void refreshTable();
     void configTable();
-    void on_pushButtonFindClear_clicked();
     void addNewJob();
     void editJob();
     void deleteJob();
@@ -35,7 +34,6 @@ private slots:
     void createContextTableMenu();
     void on_tableWidget_customContextMenuRequested(const QPoint &pos);
     void enableControls(bool enable);
-
     void on_tableWidget_doubleClicked(const QModelIndex &index);
 
 private:
@@ -47,12 +45,12 @@ private:
 
 public slots:
     void recieveDbSettings(QSqlDatabase *db);
-    void recieveEditJob(QString jobName,int jobIdn,bool newJob);
     void recieveUserPermissions(int userPermissions);
 
 signals:
-    void sendJobName(QString jobName,int jobIdn);
+    void sendJobIdn(int jobIdn);
     void sendUserPermissions(int userPermissions);
+    void sendDbSettings(QSqlDatabase *db);
 };
 
 #endif // DIALOGJOB_H

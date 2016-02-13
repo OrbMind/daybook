@@ -21,7 +21,7 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabMain">
       <attribute name="title">
@@ -390,13 +390,15 @@
           </widget>
          </item>
          <item>
-          <widget class="QListWidget" name="listWidgetAllUsers">
-           <property name="toolTip">
-            <string>Перечень всех пользователей</string>
-           </property>
+          <widget class="QTreeWidget" name="treeWidgetAllUsers">
            <property name="selectionMode">
             <enum>QAbstractItemView::MultiSelection</enum>
            </property>
+           <column>
+            <property name="text">
+             <string notr="true">1</string>
+            </property>
+           </column>
           </widget>
          </item>
         </layout>

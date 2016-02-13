@@ -17,6 +17,7 @@ namespace FullDirectionRecord {
     struct DirectionUserRecord{
         int idnUser;
         int initiated;
+        bool deleted;
     };
     struct DirectionRecord{
         int num;
@@ -45,6 +46,9 @@ private slots:
     void on_pushButtonRemoveAllUsers_clicked();
     void on_pushButtonRemoveSelectedUsers_clicked();
     void fillUsersList();
+    void fillAllUsersByJobTree();
+    void fillRecordUsers();
+    void fillRequestUsers();
     void fillTodayDate();
     void fillNewNumber();
     void on_pushButtonChooseFilePath_clicked();
@@ -65,7 +69,7 @@ private slots:
     void on_pushButtonSetInitiated_clicked();
     void savePositionAndSize();
     void readPositionAndSize();
-
+    void addSelectedUser(QString name,int idn);
     void on_checkBoxToInitiate_stateChanged(int arg1);
 
 private:

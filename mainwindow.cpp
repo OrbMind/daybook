@@ -78,7 +78,7 @@ bool MainWindow::configDB()
                          ".conf" ) );
     /*if( !mainConfigFile.exists() )
     {
-        QMessageBox::critical(0, tr("Main config error"), "Файл конфигурации приложения не найден:\n"+mainConfigFile.fileName()+
+        QMessageBox::critical(this, tr("Main config error"), "Файл конфигурации приложения не найден:\n"+mainConfigFile.fileName()+
                               "\n\nМинимальный файл конфигурации имеет вид:\n"+
                               "[main]\n"+
                               "hostname=localhost\n"+
@@ -243,11 +243,12 @@ void MainWindow::refreshTable()
     int selectedIdn = -1;
     if ( ui->tableWidget->selectedItems().count() > 0)
         selectedIdn = QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt();
+    ui->tableWidget->setSortingEnabled(false);
     //clear table
     int n = ui->tableWidget->rowCount();
     for( int i =0; i < n; i++ ) ui->tableWidget->removeRow(0);
 
-    if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
+    if (!db.open()) { QMessageBox::critical(this, tr("Database Error"), "last error:" + db.lastError().text()); }
     QSqlQuery query(db);
 
     //query.prepare("select idn,num,ddate,subject,deleted from directions;");
@@ -305,7 +306,7 @@ void MainWindow::refreshTable()
 
 
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
 
     //adding records to table
     while (query.next())
@@ -325,6 +326,7 @@ void MainWindow::refreshTable()
     }
     db.close();
 
+    ui->tableWidget->setSortingEnabled(true);
     //restore selected item if need
     if ( selectedIdn != -1 )
     {
@@ -405,24 +407,24 @@ void MainWindow::editDirection()
         dialogDirectionWindow = NULL;
         refreshTable();
     } else
-            QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
+            QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
 }
 
 void MainWindow::deleteDirection()
 {
     if ( ui->tableWidget->selectedItems().count() )
     {
-        if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
+        if (!db.open()) { QMessageBox::critical(this, tr("Database Error"), "last error:" + db.lastError().text()); }
         QSqlQuery query(db);
 
         query.prepare("UPDATE directions SET deleted=1 where idn=:idn");
         query.bindValue(":idn",QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt());
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db.close();
         refreshTable();
     } else
-            QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
+            QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
 }
 
 void MainWindow::on_pushButtonDelete_clicked()
@@ -476,17 +478,17 @@ void MainWindow::restoreDirection()
 {
     if ( ui->tableWidget->selectedItems().count() )
     {
-        if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
+        if (!db.open()) { QMessageBox::critical(this, tr("Database Error"), "last error:" + db.lastError().text()); }
         QSqlQuery query(db);
 
         query.prepare("UPDATE directions SET deleted=0 where idn=:idn");
         query.bindValue(":idn",QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt());
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db.close();
         refreshTable();
     } else
-            QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
+            QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
 }
 
 
@@ -507,13 +509,13 @@ void MainWindow::recieveAuthorizedUserIdn(int userIdn)
     }
     else
     {
-        if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
+        if (!db.open()) { QMessageBox::critical(this, tr("Database Error"), "last error:" + db.lastError().text()); }
         QSqlQuery query(db);
         query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted,users.permissions,users.tab_number from users,spr_job"
                       " where spr_job.idn = users.idn_job and users.idn=:idn;");
         query.bindValue(":idn",currentUserIdn);
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
 
         if (query.next())
         {
@@ -557,12 +559,12 @@ void MainWindow::on_comboBoxDate_currentIndexChanged(int index)
 
     QDate Now;
 
-    if (!db.open()) { QMessageBox::critical(0, tr("Database Error"), "last error:" + db.lastError().text()); }
+    if (!db.open()) { QMessageBox::critical(this, tr("Database Error"), "last error:" + db.lastError().text()); }
 
     QSqlQuery query(db);
     query.prepare("SELECT Cast('NOW' as Date) as ddate FROM RDB$DATABASE;");
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     query.next();
 
     Now = query.value("ddate").toDate();

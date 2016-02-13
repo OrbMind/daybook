@@ -23,7 +23,12 @@ DialogDirection::DialogDirection(QWidget *parent) :
 void DialogDirection::recieveCurrentUserIdn(int userIdn)
 {
     this->currentUserIdn = userIdn;
-    if ( directionIdn == -1 ) return;
+    if ( directionIdn == -1 )
+    {
+        ui->comboBoxRecorded->setCurrentIndex(
+            ui->comboBoxRecorded->findData(QVariant(currentUserIdn),Qt::UserRole));
+        return;
+    }
     for ( int i = 0; i < currentDirection.directionUserRecords.count(); i++)
     {
         if ( currentDirection.directionUserRecords.at(i).idnUser == currentUserIdn )
@@ -66,12 +71,12 @@ void DialogDirection::recieveDirectionIdn(int directionIdn)
     }else
     {
         this->directionIdn = directionIdn;
-        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("select num,ddate,subject,text,file,idn_request,idn_recorded from directions where idn=:idn;");
         query.bindValue(":idn",directionIdn);
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         query.next();
 
         currentDirection.idnRecorded = query.value("idn_recorded").toInt();
@@ -120,24 +125,28 @@ void DialogDirection::fillInitiatedUsers()
 {
     QListWidgetItem *q;
     FullDirectionRecord::DirectionUserRecord dur;
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
-    query.prepare("select a.idn_direction,a.idn_user,a.initiated,"
+    query.prepare("select a.idn_direction,a.idn_user,a.initiated,a.deleted,"
                   " b.surname || ' ' || LEFT(b.name,1) || '. ' || LEFT(b.patronymic,1) || '.' as initials"
                   " from direction_users a,users b"
                   " where b.idn=a.idn_user and a.idn_direction=:idn_direction;");
     query.bindValue(":idn_direction",directionIdn);
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     while(query.next())
     {
-        q = new QListWidgetItem(query.value("initials").toString());
-        q->setData(Qt::UserRole,QVariant(query.value("idn_user").toInt()));
-        q->setData(Qt::UserRole+1,QVariant(query.value("initiated").toInt()));
-        ui->listWidgetToInitiated->addItem(q);
+        if ( query.value("deleted").toInt() == 0 )
+        {
+            q = new QListWidgetItem(query.value("initials").toString());
+            q->setData(Qt::UserRole,QVariant(query.value("idn_user").toInt()));
+            q->setData(Qt::UserRole+1,QVariant(query.value("initiated").toInt()));
+            ui->listWidgetToInitiated->addItem(q);
+        }
 
         dur.idnUser = query.value("idn_user").toInt();
         dur.initiated = query.value("initiated").toInt();
+        dur.deleted = ( query.value("deleted").toInt() == 0 ) ? 0 : 1;
         currentDirection.directionUserRecords << dur;
     }
     db->close();
@@ -147,11 +156,11 @@ void DialogDirection::fillInitiatedUsers()
 
 void DialogDirection::fillTodayDate()
 {
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
     query.prepare("SELECT Cast('NOW' as Date) as ddate FROM RDB$DATABASE;");
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     query.next();
     ui->dateEditDdate->setDate(query.value("ddate").toDate());
     db->close();
@@ -159,66 +168,135 @@ void DialogDirection::fillTodayDate()
 
 void DialogDirection::fillNewNumber()
 {
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
     query.prepare("select max(num) as num from directions where Extract(year FROM cast(ddate as date))=:year and deleted=0;");
     query.bindValue(":year",ui->dateEditDdate->date().year());
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     query.next();
     //QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     ui->lineEditNum->setText(QString::number(query.value("num").toInt()+1));
     db->close();
 }
 
+void DialogDirection::fillRecordUsers()
+{
+    ui->comboBoxRecorded->clear();
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
+    QSqlQuery query(*db);
+    query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted from users,spr_job"
+                  " where spr_job.idn = users.idn_job"
+                  " and ( ( spr_job.can_recorded=1 and users.deleted=0) or users.idn = :idnRecord)"
+                  " ORDER BY users.surname ASC;");
+    query.bindValue(":idnRecord",idnRecorded);
+    if ( !query.exec() )
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+
+    while( query.next() )
+        ui->comboBoxRecorded->addItem(query.value("initials").toString(),QVariant(query.value("idn").toInt()));
+    db->close();
+}
+
+void DialogDirection::fillRequestUsers()
+{
+    ui->comboBoxRequest->clear();
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
+    QSqlQuery query(*db);
+    query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted from users,spr_job"
+                  " where spr_job.idn = users.idn_job"
+                  " and ( (spr_job.can_request=1 and users.deleted=0) or users.idn = :idnRequest)"
+                  " ORDER BY users.surname ASC;");
+    query.bindValue(":idnRequest",idnRequested);
+    if ( !query.exec() )
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+
+    while( query.next() )
+        ui->comboBoxRequest->addItem(query.value("initials").toString(),QVariant(query.value("idn").toInt()));
+    db->close();
+}
+
 void DialogDirection::fillUsersList()
 {
-    QListWidgetItem* q;
-    ui->comboBoxRecorded->clear();
-    ui->comboBoxRequest->clear();
-    ui->listWidgetAllUsers->clear();
 
+    fillRecordUsers();
+    fillRequestUsers();
+    fillAllUsersByJobTree();
 
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+}
+
+void DialogDirection::fillAllUsersByJobTree()
+{
+    ui->treeWidgetAllUsers->clear();
+    ui->treeWidgetAllUsers->setColumnCount(1);
+    ui->treeWidgetAllUsers->headerItem()->setHidden(true);
+
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
+    query.prepare("select spr_job.idn as job_idn,users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted from users,spr_job"
+                  " where spr_job.idn = users.idn_job and users.deleted=0 and spr_job.deleted = 0"
+                  " ORDER BY spr_job.num ASC,users.surname ASC;");
 
-    query.prepare("select users.idn, users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials,spr_job.job,users.deleted from users,spr_job"
-                  " where spr_job.idn = users.idn_job and ( users.deleted=0 or users.idn = :idn1 or users.idn = :idn2)"
-                  " ORDER BY users.surname ASC;");
-    query.bindValue(":idn1",idnRecorded);
-    query.bindValue(":idn2",idnRequested);
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+
+    int numRootTWI;
+    QTreeWidgetItem *twI;
+
     while( query.next() )
     {
-        ui->comboBoxRecorded->addItem(query.value("initials").toString(),QVariant(query.value("idn").toInt()));
-        ui->comboBoxRequest->addItem(query.value("initials").toString(),QVariant(query.value("idn").toInt()));
+        numRootTWI = -1;
 
-        q = new QListWidgetItem(query.value("initials").toString());
-        q->setData(Qt::UserRole,QVariant(query.value("idn").toInt()));
-        ui->listWidgetAllUsers->addItem(q);
+        for( int i=0; i < ui->treeWidgetAllUsers->topLevelItemCount(); i++)
+            if ( ui->treeWidgetAllUsers->topLevelItem(i)->data(0,DataRole::idn).toInt() ==
+                    query.value("job_idn").toInt() )
+            {
+                numRootTWI = i;
+                break;
+            }
+
+        if ( numRootTWI < 0 )
+        {
+            twI = new QTreeWidgetItem();
+            twI->setText(0,query.value("job").toString());
+            twI->setData(0,DataRole::idn,query.value("job_idn").toInt());
+            ui->treeWidgetAllUsers->addTopLevelItem(twI);
+        }
+        else
+            twI = ui->treeWidgetAllUsers->topLevelItem(numRootTWI);
+
+        QTreeWidgetItem* child = new QTreeWidgetItem();
+        child->setText(0,query.value("initials").toString());
+        child->setData(0,DataRole::idn,query.value("idn").toInt());
+        twI->addChild(child);
+
     }
+
     db->close();
 
-    //colourListWidget();
+}
+
+void DialogDirection::addSelectedUser(QString name,int idn)
+{
+    for( int i=0; i < ui->listWidgetToInitiated->count(); i++)
+        if( ui->listWidgetToInitiated->item(i)->data(DataRole::idn).toInt() == idn) return;
+    QListWidgetItem *q = new QListWidgetItem;
+    q->setText(name);
+    q->setData(DataRole::idn,idn);
+    ui->listWidgetToInitiated->insertItem(ui->listWidgetToInitiated->count(),q);
 }
 
 void DialogDirection::on_pushButtonSetSelectedUsers_clicked()
 {
-    int i = 0;
-    foreach( QListWidgetItem *item, ui->listWidgetAllUsers->selectedItems())
+    foreach( QTreeWidgetItem *item, ui->treeWidgetAllUsers->selectedItems())
     {
-        for( i = 0; i < ui->listWidgetToInitiated->count(); ++i )
-            if ( QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole)).toInt() ==
-                 QVariant(item->data(Qt::UserRole)).toInt())
-                break;
-        if( i == ui->listWidgetToInitiated->count())
-        ui->listWidgetToInitiated->insertItem(ui->listWidgetToInitiated->count(),
-                                              item->clone());
-        /*if ( QVariant(ui->listWidgetToInitiated->item(
-                          ui->listWidgetToInitiated->count()-1)->data(Qt::UserRole+1)).toInt() == 1 )
-            ui->listWidgetToInitiated->item(ui->listWidgetToInitiated->count()-1)->setForeground(Qt::darkRed);
-                    //q->setForeground(Qt::darkGray);*/
+        if( item->childCount() > 0 )
+        {
+            for( int i=0; i<item->childCount(); i++ )
+                addSelectedUser(item->child(i)->text(0),item->child(i)->data(0,DataRole::idn).toInt());
+        }
+        else if ( item->childCount() == 0 )
+            addSelectedUser(item->text(0),item->data(0,DataRole::idn).toInt());
     }
 
     copyToListWidgetDirectionUsers();
@@ -227,9 +305,14 @@ void DialogDirection::on_pushButtonSetSelectedUsers_clicked()
 void DialogDirection::on_pushButtonSetAllUsers_clicked()
 {
     ui->listWidgetToInitiated->clear();
-    for( int i=0; i < ui->listWidgetAllUsers->count(); i++ )
-        ui->listWidgetToInitiated->insertItem(ui->listWidgetToInitiated->count(),
-                                              ui->listWidgetAllUsers->item(i)->clone());
+    for( int i=0; i < ui->treeWidgetAllUsers->topLevelItemCount(); i++)
+        for(int j=0; j < ui->treeWidgetAllUsers->topLevelItem(i)->childCount(); j++)
+        {
+            QListWidgetItem *q = new QListWidgetItem;
+            q->setText(ui->treeWidgetAllUsers->topLevelItem(i)->child(j)->text(0));
+            q->setData(DataRole::idn,ui->treeWidgetAllUsers->topLevelItem(i)->child(j)->data(0,DataRole::idn).toInt());
+            ui->listWidgetToInitiated->insertItem(ui->listWidgetToInitiated->count(),q);
+        }
     copyToListWidgetDirectionUsers();
 }
 
@@ -274,28 +357,10 @@ void DialogDirection::on_lineEditFilePath_textChanged(const QString &arg1)
 
 void DialogDirection::saveInitiatedUsers()
 {
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); return; }
 
     QSqlQuery query(*db);
-    //FullDirectionRecord::DirectionUserRecord dur;
     db->transaction();
-    /*query.prepare("DELETE from direction_users where idn_direction=:idn_direction;");
-    query.bindValue(":idn_direction",directionIdn);
-    if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
-    query.clear();
-
-    //QMessageBox::critical(0, tr("Query Error"), QString::number(ui->listWidgetToInitiated->count()));
-    for( int i = 0; i < ui->listWidgetToInitiated->count(); i++ )
-    {
-        query.clear();
-        query.prepare("INSERT INTO direction_users (idn_direction,idn_user,initiated) VALUES (:idn_direction,:idn_user,:initiated);");
-        query.bindValue(":idn_direction",directionIdn);
-        query.bindValue(":initiated",QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole+1)).toInt());
-        query.bindValue(":idn_user",QVariant(ui->listWidgetToInitiated->item(i)->data(Qt::UserRole)).toInt());
-        if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
-    }*/
     // delete if need
     bool found;
 
@@ -315,11 +380,12 @@ void DialogDirection::saveInitiatedUsers()
         if ( !found )
         {
             query.clear();
-            query.prepare("DELETE from direction_users where idn_direction=:idn_direction and idn_user=:idn_user;");
+            //query.prepare("DELETE from direction_users where idn_direction=:idn_direction and idn_user=:idn_user;");
+            query.prepare("UPDATE direction_users SET deleted=1 where idn_direction=:idn_direction;");
             query.bindValue(":idn_direction",directionIdn);
-            query.bindValue(":idn_user",currentDirection.directionUserRecords.at(id).idnUser);
+            //query.bindValue(":idn_user",currentDirection.directionUserRecords.at(id).idnUser);
             if ( !query.exec() ){
-                QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
                 db->rollback();
                 db->close();
                 return;
@@ -337,23 +403,23 @@ void DialogDirection::saveInitiatedUsers()
                  currentDirection.directionUserRecords.at(id).idnUser )
             {
                 found = true;
-                if ( QVariant( ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt() !=
-                     currentDirection.directionUserRecords.at(id).initiated )
-                {
+                //if ( QVariant( ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt() !=
+                //     currentDirection.directionUserRecords.at(id).initiated )
+                //{
                     //update
                     query.clear();
-                    query.prepare("UPDATE direction_users set initiated=:initiated where idn_direction=:idn_direction and idn_user=:idn_user;");
+                    query.prepare("UPDATE direction_users set initiated=:initiated,deleted=0 where idn_direction=:idn_direction and idn_user=:idn_user;");
                     query.bindValue(":idn_direction",directionIdn);
                     query.bindValue(":idn_user",currentDirection.directionUserRecords.at(id).idnUser);
                     query.bindValue(":initiated",QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt());
                     if ( !query.exec() )
                     {
-                        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
                         db->rollback();
                         db->close();
                         return;
                     }
-                }
+                //}
                 break;
             } // if found idnUser
         } //for ( int id = 0; id < currentDirection.directionUserRecords.count
@@ -362,12 +428,12 @@ void DialogDirection::saveInitiatedUsers()
         {
             //insert
             query.clear();
-            query.prepare("INSERT INTO direction_users (idn_direction,idn_user,initiated) VALUES (:idn_direction,:idn_user,:initiated);");
+            query.prepare("INSERT INTO direction_users (idn_direction,idn_user,initiated,deleted) VALUES (:idn_direction,:idn_user,:initiated,0);");
             query.bindValue(":idn_direction",directionIdn);
             query.bindValue(":initiated",QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole+1)).toInt());
             query.bindValue(":idn_user",QVariant(ui->listWidgetToInitiated->item(kl)->data(Qt::UserRole)).toInt());
             if ( !query.exec() ){
-                QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
                 db->rollback();
                 db->close();
                 return;
@@ -447,13 +513,13 @@ void DialogDirection::on_buttonBox_accepted()
 
 void DialogDirection::insertNewDirection()
 {
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); return; }
 
     QSqlQuery query(*db);
     query.prepare("select GEN_ID(gen_directions, 1) as idn from RDB$DATABASE;");
             if ( !query.exec() )
             {
-                QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+                QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
                 return;
             }
     query.next();
@@ -470,7 +536,7 @@ void DialogDirection::insertNewDirection()
     query.bindValue(":idn_recorded",ui->comboBoxRecorded->currentData(Qt::UserRole).toInt());
     query.bindValue(":file",ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()));
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     db->close();
 }
 
@@ -532,7 +598,7 @@ void DialogDirection::updateDirection()
 
     if (addedField)
     {
-        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); return; }
+        if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); return; }
 
         QSqlQuery query(*db);
         query.prepare(sq);
@@ -559,7 +625,7 @@ void DialogDirection::updateDirection()
         if ( currentDirection.file != ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()))
             query.bindValue(":file",ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()));
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db->close();
     }
 
@@ -572,28 +638,31 @@ bool DialogDirection::CheckInput()
     ui->lineEditNum->text().trimmed().toInt(&isok);
     if ( !isok )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "В поле номер распоряжения необходимо ввести число.");
+        QMessageBox::warning(this, tr("Ошибка"), "В поле номер распоряжения необходимо ввести число.");
         ui->lineEditNum->setFocus();
         return false;
     }
 
     if ( ui->lineEditSubject->text().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле тема.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле тема.");
         ui->lineEditSubject->setFocus();
         return false;
     }
 
     if ( ui->plainTextEditText->toPlainText().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле текст.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле текст.");
         ui->plainTextEditText->setFocus();
         return false;
     }
 
-    if( ui->comboBoxRequest->count() < 1 || ui->comboBoxRecorded->count() < 1)
+
+
+    if( ui->comboBoxRequest->count() < 1 || ui->comboBoxRecorded->count() < 1 ||
+        ui->comboBoxRequest->currentIndex() == -1 || ui->comboBoxRecorded->currentIndex() == -1 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле записавшего/разрешившего пользователя");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле записавшего/разрешившего пользователя");
         ui->comboBoxRequest->setFocus();
         return false;
     }
@@ -627,9 +696,12 @@ void DialogDirection::on_listWidgetDirectionUsers_customContextMenuRequested(con
     if ( selectedItem->text() == "Ознакомлен" )
     {
         q->setData(Qt::UserRole+1,QVariant(1));
+        ui->pushButtonSetInitiated->setEnabled(false);
     }else if ( selectedItem->text() == "Не ознакомлен")
     {
         q->setData(Qt::UserRole+1,QVariant(0));
+        if( q->data(DataRole::idn).toInt() == currentUserIdn )
+            enableControlInitiate(Act::userPermission(Act::initiate,currentUserRights));
     }
 
     for ( int i = 0; i < ui->listWidgetToInitiated->count(); ++ i)

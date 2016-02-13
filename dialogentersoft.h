@@ -5,6 +5,7 @@
 #include <QtSql>
 #include "maindef.h"
 #include "mainwindow.h"
+#include "dialogupdatedb.h"
 
 namespace Ui {
 class DialogEnterSoft;
@@ -38,6 +39,7 @@ public slots:
 
 signals:
     void sendAuthorizedUserIdn(int userIdn);
+    void sendDbSettings(QSqlDatabase *db);
 
 };
 

@@ -34,7 +34,6 @@ private slots:
     void on_tableWidget_customContextMenuRequested(const QPoint &pos);
     void on_pushButtonFind_clicked();
     void enableControls(bool enable);
-
     void on_tableWidget_doubleClicked(const QModelIndex &index);
 
 public slots:

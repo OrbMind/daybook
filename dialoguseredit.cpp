@@ -35,7 +35,7 @@ void DialogUserEdit::recieveUserIdn(int userIdn)
 
 void DialogUserEdit::refreshData()
 {
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
     int idnJob = -1;
 
@@ -44,7 +44,7 @@ void DialogUserEdit::refreshData()
         query.prepare("select idn,idn_job,name,surname,patronymic,permissions,tab_number,upassword,users.surname || ' ' || LEFT(users.name,1) || '. ' || LEFT(users.patronymic,1) || '.' as initials from users where idn=:idn;");
         query.bindValue(":idn",userIdn);
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         query.next();
         ui->lineEditTabNumber->setText(query.value("tab_number").toString());
         ui->lineEditName->setText(query.value("name").toString());
@@ -65,7 +65,7 @@ void DialogUserEdit::refreshData()
         query.bindValue(":idn",idnJob);
     }
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
 
     ui->comboBoxJob->clear();
     while (query.next())
@@ -81,9 +81,11 @@ void DialogUserEdit::on_buttonBox_accepted()
 {
     if ( !Act::userPermission(Act::editUser,currentUserRights) ) return;
 
-    if ( newUser && checkInput() )
+    if ( !checkInput() ) return;
+
+    if ( newUser)
     {
-        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("INSERT INTO users (idn,idn_job,name,surname,patronymic,permissions,tab_number,upassword) VALUES (GEN_ID(gen_users_idn, 1),:idn_job,:name,:surname,:patronymic,:permissions,:tab_number,:upassword);");
         query.bindValue(":idn_job",ui->comboBoxJob->currentData(Qt::UserRole).toInt());
@@ -94,12 +96,12 @@ void DialogUserEdit::on_buttonBox_accepted()
         query.bindValue(":tab_number",ui->lineEditTabNumber->text().trimmed().remove(128,ui->lineEditTabNumber->text().length()));
         query.bindValue(":upassword",ui->lineEditPassword->text());
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db->close();
         this->accept();
-    }else if ( !newUser && checkInput() )
+    }else
     {
-        if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
 
         //UPDATE spr_job SET deleted=1 WHERE idn=:idn
@@ -114,7 +116,7 @@ void DialogUserEdit::on_buttonBox_accepted()
         query.bindValue(":idn",userIdn);
 
         if ( !query.exec() )
-            QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         db->close();
         this->accept();
     }
@@ -124,7 +126,7 @@ bool DialogUserEdit::checkInput()
 {
     if ( ui->lineEditTabNumber->text().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле табельный номер.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле табельный номер.");
         ui->lineEditTabNumber->setFocus();
         return false;
     }
@@ -137,35 +139,36 @@ bool DialogUserEdit::checkInput()
 
     if ( ui->lineEditName->text().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле имя.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле имя.");
         ui->lineEditName->setFocus();
         return false;
     }
 
     if ( ui->lineEditSurname->text().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле фамилия.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле фамилия.");
         ui->lineEditSurname->setFocus();
         return false;
     }
 
     if ( ui->lineEditPatronymic->text().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле отчество.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле отчество.");
         ui->lineEditPatronymic->setFocus();
         return false;
     }
 
     if ( ui->lineEditPassword->text().trimmed().length() == 0 )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не заполнено поле пароль.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не заполнено поле пароль.");
         ui->lineEditPassword->setFocus();
         return false;
     }
 
-    if ( ui->comboBoxJob->count() < 1 )
+    if ( ui->comboBoxJob->count() < 1 ||
+         ui->comboBoxJob->currentIndex() == -1)
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Не указана должность.");
+        QMessageBox::warning(this, tr("Ошибка"), "Не указана должность.");
         ui->lineEditPassword->setFocus();
         return false;
     }
@@ -201,7 +204,7 @@ void DialogUserEdit::enableControls(bool enable)
 bool DialogUserEdit::checkTabNumber()
 {
     bool result = false;
-    if (!db->open()) { QMessageBox::critical(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::critical(this, tr("Database Error"), db->lastError().text()); }
     QSqlQuery query(*db);
 
 
@@ -210,10 +213,10 @@ bool DialogUserEdit::checkTabNumber()
                   " where spr_job.idn = users.idn_job and users.tab_number=:tab_number;");
     query.bindValue(":tab_number",ui->lineEditTabNumber->text().trimmed().remove(128,ui->lineEditTabNumber->text().length()));
     if ( !query.exec() )
-        QMessageBox::critical(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::critical(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     if ( query.next() && query.value("idn").toInt() != userIdn )
     {
-        QMessageBox::warning(0, tr("Ошибка"), "Пользователь с таким табельным номером уже существует: " + query.value("initials").toString());
+        QMessageBox::warning(this, tr("Ошибка"), "Пользователь с таким табельным номером уже существует: " + query.value("initials").toString());
         result = false;
     }
     else

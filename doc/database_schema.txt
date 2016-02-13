@@ -6,7 +6,10 @@ DEFAULT CHARACTER SET UTF8;
 CREATE TABLE spr_job
 (idn INTEGER PRIMARY KEY,
 job VARCHAR(128) UNIQUE,
-deleted SMALLINT DEFAULT 0
+deleted SMALLINT DEFAULT 0,
+can_request SMALLINT DEFAULT 0,
+can_recorded SMALLINT DEFAULT 0,
+num INTEGER DEFAULT 0
 );
 
 CREATE GENERATOR gen_spr_job_idn;
@@ -32,8 +35,8 @@ CREATE TABLE directions
 (idn INTEGER PRIMARY KEY,
 num INTEGER DEFAULT 0,
 ddate TIMESTAMP NOT NULL,
-subject VARCHAR(64) NOT NULL,
-text VARCHAR(256) NOT NULL,
+subject VARCHAR(1024) NOT NULL,
+text VARCHAR(1024) NOT NULL,
 file VARCHAR(1024),
 idn_request INTEGER NOT NULL,
 idn_recorded INTEGER NOT NULL,
@@ -43,7 +46,8 @@ deleted SMALLINT DEFAULT 0
 CREATE TABLE direction_users
 (idn_direction INTEGER NOT NULL,
 idn_user INTEGER NOT NULL,
-initiated SMALLINT DEFAULT 0
+initiated SMALLINT DEFAULT 0,
+deleted SMALLINT DEFAULT 0
 );
 
 CREATE GENERATOR gen_directions;
@@ -59,4 +63,4 @@ svalue VARCHAR(32));
 
 insert into spr_job (idn,job,deleted) VALUES (0,' ',1);
 insert into users (idn,idn_job,name,surname,patronymic,permissions,tab_number,upassword) VALUES (GEN_ID(gen_users_idn, 1),0,'P','admin','S',2,'admin','admin');
-insert into appconfig (option,svalue) VALUES ('dbver','1');
+insert into appconfig (option,svalue) VALUES ('dbver','2');

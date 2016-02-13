@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>262</width>
-    <height>112</height>
+    <width>506</width>
+    <height>244</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -23,22 +23,62 @@
    <iconset resource="images.qrc">
     <normaloff>:/icon/icon/icon.png</normaloff>:/icon/icon/icon.png</iconset>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
     <widget class="QLabel" name="labelNameJob">
      <property name="text">
       <string>Наименование должности:</string>
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
+   <item>
     <widget class="QLineEdit" name="lineEditJob">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Наименование должности&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
      <property name="maxLength">
       <number>128</number>
      </property>
     </widget>
    </item>
-   <item row="2" column="0">
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Порядковый номер:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="lineEditNum">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Данное поле используется для сортировки должностей&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="maxLength">
+      <number>5</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxRequest">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Пользователи с данной должностью будут в перечне разрешающих лиц&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string>Разрешающий</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxRecord">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Пользователи с данной должностью будут в перечне размещающих лиц&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string>Размещающий</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>

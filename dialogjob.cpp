@@ -34,12 +34,13 @@ void DialogJob::on_pushButtonClose_clicked()
 
 void DialogJob::configTable()
 {
-    ui->tableWidget->setColumnCount(1);
+    ui->tableWidget->setColumnCount(2);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->tableWidget->setHorizontalHeaderItem(0,new QTableWidgetItem("Должность"));
+    ui->tableWidget->setHorizontalHeaderItem(1,new QTableWidgetItem("№"));
 }
 
 void DialogJob::refreshTable()
@@ -48,37 +49,41 @@ void DialogJob::refreshTable()
     int selectedIdn = -1;
     if ( ui->tableWidget->selectedItems().count() > 0)
         selectedIdn = ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(Qt::UserRole).toInt();
+    ui->tableWidget->setSortingEnabled(false);
     //clear table
     int n = ui->tableWidget->rowCount();
-    for( int i =0; i < n; i++ ) ui->tableWidget->removeRow(0);
+    for( int i = 0; i < n; i++ ) ui->tableWidget->removeRow(0);
     //try to open database
-    if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
+    if (!db->open()) { QMessageBox::warning(this, tr("Database Error"), db->lastError().text()); }
     //prepare query for all records, or apply filter
     QSqlQuery query(*db);
     if ( ui->lineEditFind->text().trimmed() != "" )
     {
-        query.prepare("select idn,job,deleted from spr_job WHERE job like '%'||:sjob||'%' and idn>0;");
+        query.prepare("select idn,job,deleted,num from spr_job WHERE job like '%'||:sjob||'%' and idn>0;");
         query.bindValue(":sjob", ui->lineEditFind->text().trimmed());
     }
     else
-        query.prepare("select idn,job,deleted from spr_job WHERE idn>0;");
+        query.prepare("select idn,job,deleted,num from spr_job WHERE idn>0;");
     //execute query
     if ( !query.exec() )
-        QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+        QMessageBox::warning(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
     //adding records to table
     while (query.next())
     {
         n = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(n);
-        QTableWidgetItem *q = new QTableWidgetItem(query.value(1).toString());
+        QTableWidgetItem *q = new QTableWidgetItem(query.value("job").toString());
         q->setData(DataRole::idn,query.value("idn").toInt());
         q->setData(DataRole::deleted,query.value("deleted").toInt());
         if ( query.value("deleted").toInt() )
             q->setForeground(Qt::darkGray);
         ui->tableWidget->setItem(n, 0, q);
+        ui->tableWidget->setItem(n,1, new QTableWidgetItem(query.value("num").toString()));
 
     }
     db->close();
+
+    ui->tableWidget->setSortingEnabled(true);
     //restore selected item if need
     if ( selectedIdn != -1 )
     {
@@ -102,10 +107,12 @@ void DialogJob::addNewJob()
 {
     DialogJobEdit* dialogJobEditWinow = new DialogJobEdit;
     dialogJobEditWinow->setModal(true);
-    connect(dialogJobEditWinow, SIGNAL(sendEditJob(QString,int,bool)), this, SLOT(recieveEditJob(QString,int,bool)) );
+    connect(this,SIGNAL(sendDbSettings(QSqlDatabase*)),dialogJobEditWinow,SLOT(recieveDbSettings(QSqlDatabase*)));
     connect(this,SIGNAL(sendUserPermissions(int)),dialogJobEditWinow, SLOT(recieveUserPermissions(int)));
+    emit sendDbSettings(db);
     emit sendUserPermissions(this->currentUserRights);
-    dialogJobEditWinow->exec();
+    if( dialogJobEditWinow->exec() == QDialog::Accepted)
+        refreshTable();
     dialogJobEditWinow->~DialogJobEdit();
     dialogJobEditWinow = NULL;
 }
@@ -114,13 +121,14 @@ void DialogJob::editJob()
 {
     DialogJobEdit* dialogJobEditWinow = new DialogJobEdit;
     dialogJobEditWinow->setModal(true);
-    connect(this, SIGNAL(sendJobName(QString,int)), dialogJobEditWinow, SLOT(recieveJobName(QString,int)));
-    connect(dialogJobEditWinow, SIGNAL(sendEditJob(QString,int,bool)), this, SLOT(recieveEditJob(QString,int,bool)) );
-    emit sendJobName(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->text(),
-                     ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt());
+    connect(this,SIGNAL(sendDbSettings(QSqlDatabase*)),dialogJobEditWinow,SLOT(recieveDbSettings(QSqlDatabase*)));
     connect(this,SIGNAL(sendUserPermissions(int)),dialogJobEditWinow, SLOT(recieveUserPermissions(int)));
+    connect(this, SIGNAL(sendJobIdn(int)), dialogJobEditWinow, SLOT(recieveJobIdn(int)));
+    emit sendDbSettings(db);
     emit sendUserPermissions(this->currentUserRights);
-    dialogJobEditWinow->exec();
+    emit sendJobIdn(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt());
+    if( dialogJobEditWinow->exec() == QDialog::Accepted)
+        refreshTable();
     dialogJobEditWinow->~DialogJobEdit();
     dialogJobEditWinow = NULL;
 }
@@ -129,56 +137,30 @@ void DialogJob::deleteJob()
 {
     if ( ui->tableWidget->selectedItems().count() )
     {
-        if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::warning(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE spr_job SET deleted=1 WHERE idn=:idn");
         query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
-            QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::warning(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
     } else
-        QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для удаления.");
+        QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для удаления.");
 }
 
 void DialogJob::restoreJob()
 {
     if ( ui->tableWidget->selectedItems().count() )
     {
-        if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
+        if (!db->open()) { QMessageBox::warning(this, tr("Database Error"), db->lastError().text()); }
         QSqlQuery query(*db);
         query.prepare("UPDATE spr_job SET deleted=0 WHERE idn=:idn");
         query.bindValue(":idn",QString::number(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn).toInt()));
         if ( !query.exec() )
-            QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
+            QMessageBox::warning(this, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
         refreshTable();
     } else
-        QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для восстановления.");
-}
-
-void DialogJob::recieveEditJob(QString jobName,int jobIdn,bool newJob)
-{
-    if ( !Act::userPermission(Act::editJob,currentUserRights) ) return;
-    if (!db->open()) { QMessageBox::warning(0, tr("Database Error"), db->lastError().text()); }
-    QSqlQuery query(*db);
-
-    if ( newJob )
-        query.prepare("INSERT INTO spr_job (idn,job) VALUES (GEN_ID(gen_spr_job_idn, 1),:jobName);");
-    else
-    {
-        query.prepare("UPDATE spr_job SET job=:jobName WHERE idn=:idn");
-        query.bindValue(":idn",QString::number(jobIdn));
-    }
-    query.bindValue(":jobName",jobName.trimmed().remove(128,jobName.length()));
-
-    if ( !query.exec() )
-        QMessageBox::warning(0, tr("Query Error"), query.lastQuery() + "\n\n" + query.lastError().text());
-    refreshTable();
-}
-
-void DialogJob::on_pushButtonFindClear_clicked()
-{
-    ui->lineEditFind->setText("");
-    refreshTable();
+        QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для восстановления.");
 }
 
 void DialogJob::on_pushButtonAddJob_clicked()
@@ -191,7 +173,7 @@ void DialogJob::on_pushButtonEditJob_clicked()
     if ( ui->tableWidget->selectedItems().count() )
         editJob();
     else
-        QMessageBox::information(0, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
+        QMessageBox::information(this, tr("Внимание!"), "Необходимо выбрать строку для редактирования.");
 }
 
 void DialogJob::on_pushButtonDeleteJob_clicked()
