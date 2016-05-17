@@ -21,7 +21,7 @@
    <item>
     <widget class="QCheckBox" name="checkBoxLastUser">
      <property name="text">
-      <string>Запоминать последнего имя пользователя</string>
+      <string>Запоминать имя последнего пользователя</string>
      </property>
     </widget>
    </item>
