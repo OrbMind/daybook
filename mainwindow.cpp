@@ -243,6 +243,8 @@ void MainWindow::refreshTable()
     int selectedIdn = -1;
     if ( ui->tableWidget->selectedItems().count() > 0)
         selectedIdn = QVariant(ui->tableWidget->item(ui->tableWidget->currentRow(),0)->data(DataRole::idn)).toInt();
+    int sortIndicatorSectionNum = ui->tableWidget->horizontalHeader()->sortIndicatorSection();
+    Qt::SortOrder sortIndicatorOrderData = ui->tableWidget->horizontalHeader()->sortIndicatorOrder();
     ui->tableWidget->setSortingEnabled(false);
     //clear table
     int n = ui->tableWidget->rowCount();
@@ -333,6 +335,7 @@ void MainWindow::refreshTable()
     db.close();
 
     ui->tableWidget->setSortingEnabled(true);
+    ui->tableWidget->sortItems(sortIndicatorSectionNum,sortIndicatorOrderData);
     //restore selected item if need
     if ( selectedIdn != -1 )
     {
@@ -360,6 +363,7 @@ void MainWindow::configTable()
     //ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);//Fixed
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);//Fixed
+    ui->tableWidget->sortItems(1,Qt::DescendingOrder);
 }
 
 void MainWindow::on_pushButtonFind_clicked()
