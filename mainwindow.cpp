@@ -253,8 +253,9 @@ void MainWindow::refreshTable()
 
     //query.prepare("select idn,num,ddate,subject,deleted from directions;");
     QString sq="";
-    sq = "select directions.idn,directions.num,"
-    " CAST(lpad(EXTRACT(DAY FROM directions.ddate),2,'0') AS varchar(2))||'.'|| CAST(lpad(EXTRACT(MONTH FROM directions.ddate),2,'0') AS varchar(2))||'.'|| EXTRACT(YEAR FROM directions.ddate) AS fdate"
+    sq = "select directions.idn,directions.num"
+    //" ,CAST(lpad(EXTRACT(DAY FROM directions.ddate),2,'0') AS varchar(2))||'.'|| CAST(lpad(EXTRACT(MONTH FROM directions.ddate),2,'0') AS varchar(2))||'.'|| EXTRACT(YEAR FROM directions.ddate) AS fdate"
+    " ,directions.ddate"
     " ,directions.subject,directions.deleted from directions";
     if ( ui->checkBoxForInitiated->checkState() == Qt::Checked )
         sq = sq + ",direction_users";
@@ -313,11 +314,16 @@ void MainWindow::refreshTable()
     {
         n = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(n);
-        QTableWidgetItem *q = new QTableWidgetItem(query.value("num").toString());
+        //QTableWidgetItem *q = new QTableWidgetItem(query.value("num").toString());
+        QTableWidgetItem *q = new QTableWidgetItem;
+        q->setData(Qt::EditRole,query.value("num").toInt());
         q->setData(DataRole::idn,query.value("idn").toInt());
         q->setData(DataRole::deleted,query.value("deleted").toInt());
         ui->tableWidget->setItem(n, 0, q);
-        ui->tableWidget->setItem(n, 1, new QTableWidgetItem(query.value("fdate").toString()));
+        q = new QTableWidgetItem;
+        q->setData(Qt::EditRole,query.value("ddate").toDate());
+        ui->tableWidget->setItem(n, 1, q);
+        //ui->tableWidget->setItem(n, 1, new QTableWidgetItem(query.value("ddate").toDate().toString("dd.MM.yyyy")));
         ui->tableWidget->setItem(n, 2, new QTableWidgetItem(query.value("subject").toString()));
 
         if ( query.value("deleted").toInt() )
