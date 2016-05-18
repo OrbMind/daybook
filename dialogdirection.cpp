@@ -531,7 +531,7 @@ void DialogDirection::insertNewDirection()
     query.bindValue(":num",ui->lineEditNum->text().trimmed().toInt());
     query.bindValue(":ddate",ui->dateEditDdate->date());
     query.bindValue(":subject",ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()));
-    query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()));
+    query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(4096,ui->plainTextEditText->toPlainText().length()));
     query.bindValue(":idn_request",ui->comboBoxRequest->currentData(Qt::UserRole).toInt());
     query.bindValue(":idn_recorded",ui->comboBoxRecorded->currentData(Qt::UserRole).toInt());
     query.bindValue(":file",ui->lineEditFilePath->text().trimmed().remove(1024,ui->lineEditFilePath->text().length()));
@@ -566,7 +566,7 @@ void DialogDirection::updateDirection()
         addedField = true;
     }
 
-    if ( currentDirection.text != ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()))
+    if ( currentDirection.text != ui->plainTextEditText->toPlainText().trimmed().remove(4096,ui->plainTextEditText->toPlainText().length()))
     {
         if (addedField) sq = sq + ",";
         sq = sq + "text=:text";
@@ -613,8 +613,8 @@ void DialogDirection::updateDirection()
         if ( currentDirection.subject != ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()))
             query.bindValue(":subject",ui->lineEditSubject->text().trimmed().remove(1024,ui->lineEditSubject->text().length()));
 
-        if ( currentDirection.text != ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()))
-            query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(1024,ui->plainTextEditText->toPlainText().length()));
+        if ( currentDirection.text != ui->plainTextEditText->toPlainText().trimmed().remove(4096,ui->plainTextEditText->toPlainText().length()))
+            query.bindValue(":text",ui->plainTextEditText->toPlainText().trimmed().remove(4096,ui->plainTextEditText->toPlainText().length()));
 
         if ( currentDirection.idnRequested != ui->comboBoxRequest->currentData(Qt::UserRole).toInt())
             query.bindValue(":idn_request",ui->comboBoxRequest->currentData(Qt::UserRole).toInt());
@@ -738,10 +738,10 @@ void DialogDirection::recieveUserPermissions(int userPermissions)
 
 void DialogDirection::enableControls(bool enable)
 {
-    ui->lineEditNum->setEnabled(enable);
+    ui->lineEditNum->setReadOnly(!enable);
     ui->dateEditDdate->setEnabled(enable);
-    ui->lineEditSubject->setEnabled(enable);
-    ui->plainTextEditText->setEnabled(enable);
+    ui->lineEditSubject->setReadOnly(!enable);
+    ui->plainTextEditText->setReadOnly(!enable);
     ui->comboBoxRequest->setEnabled(enable);
     ui->comboBoxRecorded->setEnabled(enable);
 

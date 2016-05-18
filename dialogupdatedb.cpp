@@ -31,7 +31,7 @@ void DialogUpdateDb::on_pushButtonUpdateDB_clicked()
 
     if( result ) result = checkVersion();
 
-    if( result ) result = updateV12V2();
+    if( result ) result = updateV2V3();
 
     if( result ) addLog("Обновление выполнено успешно. Необходимо перезапустить приложение.");
 
@@ -198,6 +198,63 @@ bool DialogUpdateDb::updateV12V2()
     }
     addLog("ok\n");
     query.clear();
+
+    db->commit();
+
+    ui->pushButtonUpdateDB->setEnabled(false);
+    return true;
+}
+
+bool DialogUpdateDb::updateV2V3()
+{
+    QSqlQuery query(*db);
+    db->transaction();
+
+    addLog("Увеличиваем размер поля text в таблице directions ...");
+    query.prepare("ALTER TABLE directions ALTER text TYPE VARCHAR(4096);");
+    if ( !query.exec() )
+    {
+          addLog("\nОшибка запроса:" + query.lastQuery() + "\n\n" + query.lastError().text());
+          db->rollback();
+          return false;
+    }
+    addLog("ok\n");
+    query.clear();
+
+    addLog("Обновляем версию БД...");
+    query.prepare("UPDATE appconfig SET svalue=:svalue where option='dbver';");
+    query.bindValue(":svalue",ApplicationConfiguration::dbVersion);
+    if ( !query.exec() )
+    {
+          addLog("\nОшибка запроса:" + query.lastQuery() + "\n\n" + query.lastError().text());
+          db->rollback();
+          return false;
+    }
+    addLog("ok\n");
+    query.clear();
+
+
+    addLog("Проверка текущий версии БД...");
+    query.prepare("select svalue from appconfig where option='dbver';");
+    if ( !query.exec() )
+    {
+        addLog("\nОшибка запроса:" + query.lastQuery() + "\n\n" + query.lastError().text());
+        db->rollback();
+        return false;
+    }
+    if (!query.next())
+    {
+        addLog("\nОшибка запроса: версия не обнаружена.");
+        db->rollback();
+        return false;
+    }
+    if ( query.value("svalue").toString() != QString(ApplicationConfiguration::dbVersion) )
+    {
+        addLog("\nОшибка запроса: некорректная версия: " + query.value("svalue").toString());
+        db->rollback();
+        return false;
+    }
+    addLog("версия: " + query.value("svalue").toString() + "\n");
 
     db->commit();
 

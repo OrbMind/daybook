@@ -24,6 +24,7 @@ private slots:
     bool checkConnection();
     bool checkVersion();
     bool updateV12V2();
+    bool updateV2V3();
 
 private:
     Ui::DialogUpdateDb *ui;

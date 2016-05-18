@@ -7,8 +7,8 @@ namespace ApplicationConfiguration
 {
     const char * const defaultHost = "10.0.2.200";
     const char * const defaultDbName = "test";
-    const char * const olddbVersion = "1";
-    const char * const dbVersion = "2";
+    const char * const olddbVersion = "2";
+    const char * const dbVersion = "3";
     const char * const userDBA = "SYSDBA";
     const char * const passwordDBA = "masterkey";
     //const char * const appName = "daybook";
