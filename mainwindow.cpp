@@ -363,7 +363,7 @@ void MainWindow::configTable()
     //ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);//Fixed
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);//Fixed
-    ui->tableWidget->sortItems(1,Qt::DescendingOrder);
+    ui->tableWidget->sortItems(0,Qt::DescendingOrder);
 }
 
 void MainWindow::on_pushButtonFind_clicked()
